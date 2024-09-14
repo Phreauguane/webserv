@@ -6,11 +6,12 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:10:32 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/14 13:41:26 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/15 00:45:26 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Config.h"
+#include "Utils.h"
 
 std::string Config::_readFile(const std::string& filename)
 {
@@ -28,35 +29,48 @@ std::string Config::_readFile(const std::string& filename)
 	return out;
 }
 
-std::string Config::_removeComments(const std::string& source)
+void Config::_createServers()
 {
-	std::string output("");
-	for (int i = 0; i < source.size(); i++)
+	size_t found = _source.find("server");
+	while (found != std::string::npos)
 	{
-		// ------ Doesn't seem to be usefull ------
-		//
-		// if (source[i] == '\'')
-		// 	while (source[++i] != '\'' && i < source.size())
-		// 		output += source[i];
-		// if (source[i] == '\"')
-		// 	while (source[++i] != '\"' && i < source.size())
-		// 		output += source[i];
-		//
-		// ----------------------------------------
-		if (source[i] == '#')
-			while (source[i++] != '\n' && i < source.size());
-		else
-			output += source[i];
+		std::string srv_source = Utils::readBrackets(_source, found);
+		_servers.push_back(new Server(srv_source));
+		found = _source.find("server", found + srv_source.size());
 	}
-	
-	return output;
 }
 
-Config::Config() : Config("default.conf")
-{}
+Config::Config()
+{
+	// default constructor to do
+}
+
+Config::Config(const Config& copy)
+{
+	(void) copy;
+	// to do
+}
+
+Config::~Config()
+{
+	// destructor to do
+}
 
 Config::Config(const std::string& filename)
 {
 	_source = _readFile(filename);
+	
+	std::cout << ">     Config file read      <" << std::endl;
+	std::cout << ">          START            <" << std::endl;
+	std::cout <<            _source              << std::endl;
+	std::cout << ">           END             <" << std::endl;
+	
+	_source = Utils::removeComments(_source);
 
+	std::cout << ">     Removed Comments      <" << std::endl;
+	std::cout << ">          START            <" << std::endl;
+	std::cout <<            _source              << std::endl;
+	std::cout << ">           END             <" << std::endl;
+	
+	_createServers();
 }

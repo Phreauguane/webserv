@@ -1,21 +1,21 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   main.cpp                                           :+:      :+:    :+:   */
+/*   Utils.h                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/09/11 23:07:53 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/15 00:17:20 by jde-meo          ###   ########.fr       */
+/*   Created: 2024/09/15 00:25:35 by jde-meo           #+#    #+#             */
+/*   Updated: 2024/09/15 00:28:29 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "Config.h"
+#pragma once
 
-int	main(int ac, char **av)
+#include "webserv.h"
+
+namespace Utils
 {
-	(void) ac;
-	(void) av;
-	Config("default.conf");
-	return 0;
+	std::string removeComments(const std::string&);
+	std::string readBrackets(const std::string&, size_t);
 }

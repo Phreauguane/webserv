@@ -2,11 +2,17 @@ NAME	=	webserv
 
 CPP		=	c++ -Wall -Wextra -Werror -std=c++98
 
-SRC		=	main.cpp		\
+INCLUDE =	include
+
+SRC		=	main.cpp			\
+			src/Config.cpp		\
+			src/Server.cpp		\
+			src/Location.cpp	\
+			src/Utils.cpp
 			
 
 all		:
-	$(CPP) $(SRC) -o $(NAME)
+	$(CPP) -I $(INCLUDE) $(SRC) -o $(NAME)
 
 clean	:
 	rm -f $(NAME)

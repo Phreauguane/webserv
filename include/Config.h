@@ -1,32 +1,29 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Server.h                                           :+:      :+:    :+:   */
+/*   Config.h                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/09/13 14:18:44 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/14 13:18:31 by jde-meo          ###   ########.fr       */
+/*   Created: 2024/09/11 23:10:29 by jde-meo           #+#    #+#             */
+/*   Updated: 2024/09/15 00:25:53 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 
-#include "webserv.h"
-#include "Location.h"
+#include "Server.h"
 
-class Server
+class Config
 {
 public:
-	Server();
-	Server(const Server&);
-	Server(std::string&);
-	in_addr getHost() const;
-	int getPort() const;
-	virtual ~Server();
+	Config();
+	Config(const Config&);
+	Config(const std::string&);
+	virtual ~Config();
 private:
-	in_addr _host;
-	int _port;
-	std::vector<Location> _locations;
-	std::map<unsigned int, std::string> _error_pages;
+	std::string _readFile(const std::string&);
+	void		_createServers();
+	std::string _source;
+	std::vector<Server*> _servers;
 };
