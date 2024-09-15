@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Config.h                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:10:29 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/15 00:25:53 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/15 14:09:55 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@ public:
 	Config();
 	Config(const Config&);
 	Config(const std::string&);
+	Config& operator=(const Config&);
 	virtual ~Config();
 private:
 	std::string _readFile(const std::string&);

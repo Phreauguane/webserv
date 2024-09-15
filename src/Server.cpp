@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:19:33 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/15 00:22:04 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/15 14:24:58 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,12 +20,17 @@ Server::Server()
 
 Server::Server(const Server& copy)
 {
-	(void) copy;
-	// to do
+	*this = copy;
+}
+
+void Server::_parseSource(const std::string& source)
+{
+	// Search for 'name' 'host' 'listen' and 'root' as they are necessary
 }
 
 Server::Server(const std::string& source)
 {
+	_root_loc = new Location();
 	/*
 		Server constructor, takes source as parameter (string containing "server {...}")
 		builds a Server object based on everything specified inside
@@ -46,4 +51,13 @@ Server::Server(const std::string& source)
 Server::~Server()
 {
 	// to do
+}
+
+Server& Server::operator=(const Server& copy)
+{
+	_host = copy._host;
+	_port = copy._port;
+	_root_loc = new Location(*(copy._root_loc));
+	_error_pages = copy._error_pages;
+	return *this;
 }

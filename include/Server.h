@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.h                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:18:44 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/14 23:49:35 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/15 14:21:43 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,10 +21,12 @@ public:
 	Server();
 	Server(const Server&);
 	Server(const std::string&);
+	Server& operator=(const Server&);
 	in_addr getHost() const;
 	int getPort() const;
 	virtual ~Server();
 private:
+	void _parseSource(const std::string&);
 	in_addr _host;
 	int _port;
 	Location *_root_loc;

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Config.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:10:32 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/15 00:45:26 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/15 14:13:11 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,8 +47,7 @@ Config::Config()
 
 Config::Config(const Config& copy)
 {
-	(void) copy;
-	// to do
+	*this = copy;
 }
 
 Config::~Config()
@@ -58,19 +57,18 @@ Config::~Config()
 
 Config::Config(const std::string& filename)
 {
-	_source = _readFile(filename);
-	
-	std::cout << ">     Config file read      <" << std::endl;
-	std::cout << ">          START            <" << std::endl;
-	std::cout <<            _source              << std::endl;
-	std::cout << ">           END             <" << std::endl;
-	
-	_source = Utils::removeComments(_source);
-
-	std::cout << ">     Removed Comments      <" << std::endl;
-	std::cout << ">          START            <" << std::endl;
-	std::cout <<            _source              << std::endl;
-	std::cout << ">           END             <" << std::endl;
+	_source = _readFile(filename); // Read full config file source
+	_source = Utils::removeComments(_source); // Remove comments from source
 	
 	_createServers();
+}
+
+Config& Config::operator=(const Config& copy)
+{
+	_source = copy._source;
+	for (size_t i = 0; i < copy._servers.size(); i++)
+	{
+		_servers.push_back(new Server(*(copy._servers[i])));
+	}
+	return *this;
 }

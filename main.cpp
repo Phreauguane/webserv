@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:07:53 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/15 00:17:20 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/15 14:39:51 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,13 @@ int	main(int ac, char **av)
 {
 	(void) ac;
 	(void) av;
-	Config("default.conf");
+	try 
+	{
+		Config conf("default.conf");
+	}
+	catch (std::string error)
+	{
+		std::cout << "Error: " << error << std::endl;
+	}
 	return 0;
 }

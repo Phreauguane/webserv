@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.h                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 16:23:29 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/14 23:44:59 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/15 14:30:59 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,8 +19,16 @@ class Location
 public:
 	Location();
 	Location(const Location&);
+	Location(const std::string&);
+	void setName(const std::string&);
+	void setRoot(const std::string&);
+	void setIndex(const std::string&);
+	void setAutoIndex(bool);
+	void addMethod(const std::string&);
+	void addChildren(const std::string&);
+	Location& operator=(const Location&);
 	virtual ~Location();
-public: // ---- members public for now ---- //
+private:
 	std::string _name, _root, _index;
 	bool _auto_index;
 	std::vector<std::string> _methods;
