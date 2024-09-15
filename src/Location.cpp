@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/15 00:05:31 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/15 18:41:33 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/15 19:12:19 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,10 @@ Location::Location(const std::string& source)
 		throw "parsing error in location : \n" + source + "\n: no brackets found !";
 	_name = source.substr(i0, i1 - i0);
 	
-	i0 = source.find('{', i0);
+	i0 = source.find("root", i1);
+	if (i0 == std::string::npos)
+		_root = _name;
+		
 	
 	
 }

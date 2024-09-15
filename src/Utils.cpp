@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/15 00:27:44 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/15 00:49:22 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/15 19:08:51 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,6 +66,7 @@ std::string Utils::readBrackets(const std::string& source, size_t start)
 		output += source[bracket];
 		bracket++;
 	}
-	output += '}';
+	if (bracket < source.size())
+		output += '}';
 	return output;
 }
