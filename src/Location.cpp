@@ -6,11 +6,12 @@
 /*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/15 00:05:31 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/15 14:45:40 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/15 18:41:33 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Location.h"
+#include "Utils.h"
 
 Location::Location()
 {
@@ -24,14 +25,20 @@ Location::Location(const Location& copy)
 
 Location::Location(const std::string& source)
 {
-	size_t dir = source.find('/');
-	if (dir == std::string::npos)
+	size_t i0 = source.find('/');
+	size_t i1 = source.find('{');
+	if (i1 < i0 || i0 == std::string::npos)
 		throw "parsing error in location : \n" + source + "\n: no name found !";
-	// TO DO
-	// parse name
-	//
-	// parse and search for various attributes
-	// auto_index, root, allowed_methods, index, return...
+	i1 = source.find(' ', i0);
+	if (i1 == std::string::npos)
+		i1 = source.find('{', i0);
+	if (i1 == std::string::npos)
+		throw "parsing error in location : \n" + source + "\n: no brackets found !";
+	_name = source.substr(i0, i1 - i0);
+	
+	i0 = source.find('{', i0);
+	
+	
 }
 
 void Location::setName(const std::string& name)

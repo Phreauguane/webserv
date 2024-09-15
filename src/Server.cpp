@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:19:33 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/15 14:24:58 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/15 18:28:49 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,7 @@ Server::Server(const Server& copy)
 
 void Server::_parseSource(const std::string& source)
 {
+	(void) source;
 	// Search for 'name' 'host' 'listen' and 'root' as they are necessary
 }
 
