@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Config.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:10:32 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/15 18:27:21 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/17 16:46:06 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,7 +52,10 @@ Config::Config(const Config& copy)
 
 Config::~Config()
 {
-	// destructor to do
+	for (size_t i = 0; i < _servers.size(); i++)
+	{
+		delete _servers[i];
+	}
 }
 
 Config::Config(const std::string& filename)
