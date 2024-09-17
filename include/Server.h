@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:18:44 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/17 14:35:22 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/17 23:47:07 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,11 +24,14 @@ public:
 	Server& operator=(const Server&);
 	in_addr getHost() const;
 	int getPort() const;
+	void printDetails() const;
 	virtual ~Server();
 private:
 	void _parseSource(const std::string&);
+	std::string _name, _ip_addr;
 	in_addr _host;
 	int _port;
 	Location *_root_loc;
 	std::map<unsigned int, std::string> _error_pages;
+	unsigned int _max_body_size;
 };

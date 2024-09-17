@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/15 00:05:31 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/17 17:07:51 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/18 00:08:09 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,17 +15,54 @@
 
 Location::Location()
 {
+	_auto_index = false;
 	// Default constructor (no idea what's needed whatsoever)
 }
 
 Location::Location(const Location& copy)
 {
+	_auto_index = false;
 	*this = copy;
 }
 
 Location::Location(const std::string& source)
 {
-	_parseConfig(source);	
+	_auto_index = false;
+	parseConfig(source);	
+}
+
+void Location::printDetails() const
+{
+	std::string methods;
+	std::string cgi_paths;
+	std::string cgi_exts;
+	for (size_t i = 0; i < _allowed_methods.size(); i++)
+	{
+		methods += " " + _allowed_methods[i];
+	}
+	for (size_t i = 0; i < _cgi_paths.size(); i++)
+	{
+		cgi_paths += " " + _cgi_paths[i];
+	}
+	for (size_t i = 0; i < _cgi_exts.size(); i++)
+	{
+		cgi_exts += " " + _cgi_exts[i];
+	}
+
+	std::cout << "╠╦══════════════════════════════════════╣" << std::endl;
+	std::cout << "║║      LOCATION : ";WIDTH(20);std::cout << _name          ;std::cout << " ║" << std::endl;
+	std::cout << "║║          root : ";WIDTH(20);std::cout << _root          ;std::cout << " ║" << std::endl;
+	std::cout << "║║         index : ";WIDTH(20);std::cout << _index         ;std::cout << " ║" << std::endl;
+	std::cout << "║║    Auto Index : ";WIDTH(20);std::cout << (_auto_index ? "ON" : "OFF") ;std::cout << " ║" << std::endl;
+	std::cout << "║║ Allow methods : ";WIDTH(20);std::cout << methods        ;std::cout << " ║" << std::endl;
+	std::cout << "║║     cgi paths : ";WIDTH(20);std::cout << cgi_paths      ;std::cout << " ║" << std::endl;
+	std::cout << "║║      cgi exts : ";WIDTH(20);std::cout << cgi_exts       ;std::cout << " ║" << std::endl;
+	std::cout << "╠╩══════════════════════════════════════╣" << std::endl;
+	for (std::map<std::string, Location*>::const_iterator it = _locations.begin(); it != _locations.end(); ++it)
+	{
+		std::cout << "╠  Sub-location  ═══════════════════════╣" << std::endl;
+		it->second->printDetails();
+	}
 }
 
 std::string Location::getName() const
@@ -37,54 +74,52 @@ void Location::parseLine(const std::vector<std::string>& strs)
 {
 	if (strs[0] == "root")
 	{
+		Utils::verify_args(strs, 2, 2);
 		_root = strs[1];
-		std::cout << "ROOT : " << _root << std::endl;
 	}
 	else if (strs[0] == "alias")
 	{
+		Utils::verify_args(strs, 2, 2);
 		_alias = strs[1];
-		std::cout << "ALIAS : " << _alias << std::endl;
 	}
 	else if (strs[0] == "index")
 	{
+		Utils::verify_args(strs, 2, 2);
 		_index = strs[1];
-		std::cout << "INDEX : " << _index << std::endl;
 	}
 	else if (strs[0] == "allow_methods")
 	{
-		std::cout << "ALLOWED METHODS : ";
+		Utils::verify_args(strs, 2, 999);
 		for (size_t i = 1; i < strs.size(); i++)
 		{
 			_allowed_methods.push_back(strs[i]);
-			std::cout << strs[i] << " ";
 		}
-		std::cout << std::endl;
 	}
     else if (strs[0] == "cgi_path") 
 	{
-		std::cout << "CGI PATH : ";
+		Utils::verify_args(strs, 2, 999);
 		for (size_t i = 1; i < strs.size(); i++)
 		{
 			_cgi_paths.push_back(strs[i]);
-			std::cout << strs[i] << " ";
 		}
-		std::cout << std::endl;
     }
     else if (strs[0] == "cgi_ext") 
 	{
-		std::cout << "CGI EXT : ";
+		Utils::verify_args(strs, 2, 999);
 		for (size_t i = 1; i < strs.size(); i++)
 		{
-			_cgi_paths.push_back(strs[i]);
-			std::cout << strs[i] << " ";
+			_cgi_exts.push_back(strs[i]);
 		}
-		std::cout << std::endl;
     }
 	else if (strs[0] == "autoindex")
 	{
+		Utils::verify_args(strs, 2, 2);
         _auto_index = (strs[1] == "on" || strs[1] == "ON");
-		std::cout << "AUTO INDEX : " << (_auto_index ? "ON" : "OFF") << std::endl;
     }
+	else if (strs[0] == "return")
+	{
+		// redirect page -> TO DO ?
+	}
 	else if (strs[0] == "{" || strs[0] == "}")
 	{}
 	else if (strs.size() > 0)
@@ -96,10 +131,12 @@ void Location::parseLine(const std::vector<std::string>& strs)
 		}
 		throw "Unkown identifier : " + line;
 	}
+	else
+		throw "Unhandled parsing error";
 }
 
-void Location::_parseConfig(const std::string& configString) {
-    // std::istringstream stream(configString);
+void Location::parseConfig(const std::string& configString) {
+	
 	size_t position = 0;
 	std::vector<std::string> lines = Utils::splitString(configString, "\n");
 	
@@ -111,7 +148,6 @@ void Location::_parseConfig(const std::string& configString) {
 		if (strs[0] == "location" && i == 0) // main location -> store name
 		{
 			_name = strs[1];
-			std::cout << "NAME : " << _name << std::endl;
 		}
 		else if (strs[0] == "location") // recursive location -> call Location(const string&)
 		{

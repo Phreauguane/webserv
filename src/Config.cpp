@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:10:32 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/17 16:46:06 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/17 23:59:33 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,6 +64,13 @@ Config::Config(const std::string& filename)
 	_source = Utils::removeComments(_source); // Remove comments from source
 	
 	_createServers();
+
+	for (size_t i = 0; i < _servers.size(); i++)
+	{
+		_servers[i]->printDetails();
+		std::cout << std::endl;
+	}
+	
 }
 
 Config& Config::operator=(const Config& copy)

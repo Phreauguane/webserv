@@ -1,6 +1,6 @@
 NAME	=	webserv
 
-CPP		=	c++ -Wall -Wextra -Werror -std=c++98
+CPP		=	c++ -Wall -Wextra -Werror -std=c++98 -g3
 
 INCLUDE =	include
 

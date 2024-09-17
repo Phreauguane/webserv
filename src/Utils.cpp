@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/15 00:27:44 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/17 15:46:17 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/17 23:19:14 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,10 @@ std::string Utils::removeComments(const std::string& source)
 		//
 		// ----------------------------------------
 		if (source[i] == '#')
+		{
 			while (source[i++] != '\n' && i < source.size());
+			output += "\n";
+		}
 		else
 			output += source[i];
 	}
@@ -48,7 +51,6 @@ std::string Utils::readBrackets(const std::string& source, size_t start)
 
 		readBrackets("hey{{} miaou{ { miaou } { miaou 2 } }", 6); -> returns -> "miaou{ { miaou } { miaou 2 } }"
 	*/
-
 	size_t bracket = source.find('{', start);
 	if (bracket == std::string::npos)
 		return source.substr(start, source.size() - start);
@@ -116,4 +118,34 @@ std::vector<std::string> Utils::splitString(const std::string& str, const std::s
 	}
 	
     return tokens;
+}
+
+int Utils::inet_pton_v4(const std::string& ip_str, in_addr *addr) {
+    // Split the IP string by '.' and store in an array
+    unsigned int octets[4];
+    std::istringstream iss(ip_str);
+    char dot;
+
+    // Parse the string using dots as delimiters
+    if ((iss >> octets[0] >> dot >> octets[1] >> dot >> octets[2] >> dot >> octets[3]) &&
+        dot == '.' && (octets[0] <= 255 && octets[1] <= 255 && octets[2] <= 255 && octets[3] <= 255)) {
+        // Convert the IP string to a 32-bit integer in network byte order (big-endian)
+        addr->s_addr = (octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3];
+        return 1; // Success
+    }
+
+    return 0; // Error: invalid format
+}
+
+void Utils::verify_args(const std::vector<std::string>& strs, size_t min, size_t max)
+{
+	if (strs.size() >= min && strs.size() <= max)
+		return;
+	std::string line = strs[0];
+	for (size_t i = 1; i < strs.size(); i++)
+	{
+		line += " " + strs[i];
+	}
+
+	throw "Invalid argument list : " + line;
 }

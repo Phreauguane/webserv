@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:19:33 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/17 17:08:18 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/17 23:58:20 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,77 +38,56 @@ void Server::_parseSource(const std::string& source)
 		{}
 		else if (strs[0] == "location") // recursive location -> call Location(const string&)
 		{
-			std::string source = Utils::readBrackets(source, position);
-			std::vector<std::string> temp = Utils::splitString(source, "\n");
-			Location* loc = new Location(source);
-			if (loc->getName() == "/")
-			{
-				
-			}
+			Utils::verify_args(strs, 2, 3);
+			std::string src = Utils::readBrackets(source, position);
+			std::vector<std::string> temp = Utils::splitString(src, "\n");
+			if (strs[1] == "/")
+				_root_loc->parseConfig(src);
+			else
+				_root_loc->addChildren(src);
 			i += temp.size() - 1;
 			continue;
 		}
-		else if (strs[0] == "root")
+		else if (strs[0] == "server_name" || strs[0] == "name")
 		{
-			_root = strs[1];
-			std::cout << "ROOT : " << _root << std::endl;
+			Utils::verify_args(strs, 2, 2);
+			_name = strs[1];
 		}
-		else if (strs[0] == "alias")
+		else if (strs[0] == "host")
 		{
-			_alias = strs[1];
-			std::cout << "ALIAS : " << _alias << std::endl;
+			Utils::verify_args(strs, 2, 2);
+			if (!Utils::inet_pton_v4(strs[1], &_host))
+				throw "Invalid host format : " + strs[1];
+			_ip_addr = strs[1];
 		}
-		else if (strs[0] == "index")
+		else if (strs[0] == "listen")
 		{
-			_index = strs[1];
-			std::cout << "INDEX : " << _index << std::endl;
+			Utils::verify_args(strs, 2, 2);
+			_port = std::atoi(strs[1].c_str());
+			if (_port > 9999)
+				throw "Invalid port format : " + strs[1];
 		}
-		else if (strs[0] == "allow_methods")
+		else if (strs[0] == "error_page")
 		{
-			std::cout << "ALLOWED METHODS : ";
-			for (size_t i = 1; i < strs.size(); i++)
-			{
-				_allowed_methods.push_back(strs[i]);
-				std::cout << strs[i] << " ";
-			}
-			std::cout << std::endl;
+			Utils::verify_args(strs, 3, 3);
+			unsigned int code = std::atoi(strs[1].c_str());
+			_error_pages[code] = strs[2];
 		}
-        else if (strs[0] == "cgi_path") 
+		else if (strs[0] == "client_max_body_size")
 		{
-			std::cout << "CGI PATH : ";
-			for (size_t i = 1; i < strs.size(); i++)
-			{
-				_cgi_paths.push_back(strs[i]);
-				std::cout << strs[i] << " ";
-			}
-			std::cout << std::endl;
-        }
-        else if (strs[0] == "cgi_ext") 
-		{
-			std::cout << "CGI EXT : ";
-			for (size_t i = 1; i < strs.size(); i++)
-			{
-				_cgi_paths.push_back(strs[i]);
-				std::cout << strs[i] << " ";
-			}
-			std::cout << std::endl;
-        }
-		else if (strs[0] == "autoindex")
-		{
-            setAutoIndex(strs[1] == "on" || strs[1] == "ON");
-			std::cout << "AUTO INDEX : " << (_auto_index ? "ON" : "OFF") << std::endl;
-        }
+			Utils::verify_args(strs, 2, 2);
+			_max_body_size = std::atoi(strs[1].c_str());
+		}
 		else if (strs[0] == "{" || strs[0] == "}")
 		{}
-		else if (line.size() > 0)
-			throw "Unkown identifier : " + line;
+		else
+			_root_loc->parseLine(strs);
         // Handle other potential fields...
     }
 }
 
 Server::Server(const std::string& source)
 {
-	_root_loc = new Location();
 	/*
 		Server constructor, takes source as parameter (string containing "server {...}")
 		builds a Server object based on everything specified inside
@@ -120,10 +99,31 @@ Server::Server(const std::string& source)
 	*/
 
 	// print the source code with a simple header for readability
-	std::cout << "> Server constructor called <" << std::endl;
-	std::cout << ">          START            <" << std::endl;
-	std::cout <<             source              << std::endl;
-	std::cout << ">           END             <" << std::endl;
+	// std::cout << "> Server constructor called <" << std::endl;
+	// std::cout << ">          START            <" << std::endl;
+	// std::cout <<             source              << std::endl;
+	// std::cout << ">           END             <" << std::endl;
+	
+	_root_loc = new Location();
+	_parseSource(source);
+
+	// std::cout << ">         --END--           <" << std::endl << std::endl;
+}
+
+void Server::printDetails() const
+{
+	// "╔═╗╚═╝║";
+	std::cout << "╔═══════════════════════════════════════╗" << std::endl;
+	std::cout << "║    Server name : ";WIDTH(20);std::cout << _name          ;std::cout << " ║" << std::endl;
+	std::cout << "║             IP : ";WIDTH(20);std::cout << _ip_addr       ;std::cout << " ║" << std::endl;
+	std::cout << "║           Port : ";WIDTH(20);std::cout << _port          ;std::cout << " ║" << std::endl;
+	std::cout << "║  Max Body Size : ";WIDTH(20);std::cout << _max_body_size ;std::cout << " ║" << std::endl;
+	for (std::map<unsigned int, std::string>::const_iterator it = _error_pages.begin(); it != _error_pages.end(); ++it)
+	{
+	std::cout << "║ Error Page "<< it->first <<" : ";WIDTH(20);std::cout << it->second ;std::cout << " ║" << std::endl;
+	}
+	_root_loc->printDetails();
+	std::cout << "╚═══════════════════════════════════════╝" << std::endl;
 }
 
 Server::~Server()
