@@ -6,28 +6,12 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:10:32 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/17 23:59:33 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/19 19:36:46 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Config.h"
 #include "Utils.h"
-
-std::string Config::_readFile(const std::string& filename)
-{
-	std::string out = "";
-	std::ifstream file(filename.c_str());
-	while (file)
-	{
-		char c;
-		file.read(&c, 1);
-
-		if (file)
-			out += c;
-	}
-	file.close();
-	return out;
-}
 
 void Config::_createServers()
 {
@@ -50,27 +34,28 @@ Config::Config(const Config& copy)
 	*this = copy;
 }
 
+Config::Config(const std::string& filename)
+{
+	_source = Utils::readFile(filename); // Read full config file source
+	_source = Utils::removeComments(_source); // Remove comments from source
+	
+	_createServers();
+
+	// for (size_t i = 0; i < _servers.size(); i++)
+	// {
+	// 	_servers[i]->printDetails();
+	// 	std::cout << std::endl;
+	// }
+	Logger::log("Config file loaded : " + filename, SUCCESS);
+}
+
 Config::~Config()
 {
 	for (size_t i = 0; i < _servers.size(); i++)
 	{
 		delete _servers[i];
 	}
-}
-
-Config::Config(const std::string& filename)
-{
-	_source = _readFile(filename); // Read full config file source
-	_source = Utils::removeComments(_source); // Remove comments from source
-	
-	_createServers();
-
-	for (size_t i = 0; i < _servers.size(); i++)
-	{
-		_servers[i]->printDetails();
-		std::cout << std::endl;
-	}
-	
+	Logger::log("Deleted config object", DEBUG);
 }
 
 Config& Config::operator=(const Config& copy)

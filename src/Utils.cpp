@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/15 00:27:44 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/17 23:19:14 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/19 19:21:54 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -148,4 +148,43 @@ void Utils::verify_args(const std::vector<std::string>& strs, size_t min, size_t
 	}
 
 	throw "Invalid argument list : " + line;
+}
+
+std::string Utils::getCurrentTime()
+{
+	// Get current time as a time_t object
+	std::time_t currentTime = std::time(NULL);
+	
+	// Convert it to local time
+	std::tm* localTime = std::localtime(&currentTime);
+	
+	// Create a string stream to format the time
+	std::ostringstream timeStream;
+	
+	// Output the time in "Hours:Minutes:Seconds" format
+	timeStream	<< (localTime->tm_hour < 10 ? "0" : "") << localTime->tm_hour << ":"
+				<< (localTime->tm_min < 10 ? "0" : "") << localTime->tm_min << ":"
+				<< (localTime->tm_sec < 10 ? "0" : "") << localTime->tm_sec;
+	
+	// Return the formatted string
+	return timeStream.str();
+}
+
+std::string Utils::readFile(const std::string& filename)
+{
+	std::string out = "";
+	std::ifstream file(filename.c_str());
+
+	if (!file.is_open())
+		throw "Failed to open file : " + filename;
+	while (file)
+	{
+		char c;
+		file.read(&c, 1);
+
+		if (file)
+			out += c;
+	}
+	file.close();
+	return out;
 }

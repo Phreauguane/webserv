@@ -8,7 +8,8 @@ SRC		=	main.cpp			\
 			src/Config.cpp		\
 			src/Server.cpp		\
 			src/Location.cpp	\
-			src/Utils.cpp
+			src/Utils.cpp		\
+			src/Logger.cpp
 			
 
 all		:

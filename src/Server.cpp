@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:19:33 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/17 23:58:20 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/19 19:36:37 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,26 +88,8 @@ void Server::_parseSource(const std::string& source)
 
 Server::Server(const std::string& source)
 {
-	/*
-		Server constructor, takes source as parameter (string containing "server {...}")
-		builds a Server object based on everything specified inside
-		should handle synthax and parsing errors (NEEDS TO BE BULLETPROOF)
-
-		For now only prints the source code given as parameter
-
-		Final constructor to be done
-	*/
-
-	// print the source code with a simple header for readability
-	// std::cout << "> Server constructor called <" << std::endl;
-	// std::cout << ">          START            <" << std::endl;
-	// std::cout <<             source              << std::endl;
-	// std::cout << ">           END             <" << std::endl;
-	
 	_root_loc = new Location();
 	_parseSource(source);
-
-	// std::cout << ">         --END--           <" << std::endl << std::endl;
 }
 
 void Server::printDetails() const
