@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:07:53 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/19 19:37:35 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/20 18:15:44 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,12 +14,12 @@
 
 int	main(int ac, char **av)
 {
-	Logger::setLogFile("default.log");
+	// Logger::setLogFile("default.log");
 	// Logger::setMinLogLevel(INFO);
+	Logger::log("Program started", INFO);
 	(void) ac;
 	(void) av;
 
-	Logger::log("Program started", INFO);
 	try
 	{
 		Config conf("default.conf");
@@ -28,6 +28,7 @@ int	main(int ac, char **av)
 	{
 		Logger::log(error, ERROR);
 	}
+	Logger::log("Program ended", INFO);
 	Logger::saveLog();
 	return 0;
 }

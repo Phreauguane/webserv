@@ -17,6 +17,7 @@ all		:
 
 clean	:
 	rm -f $(NAME)
+	rm -f *.log
 
 fclean	:	clean
 

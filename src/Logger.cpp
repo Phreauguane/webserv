@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Logger.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/19 18:36:07 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/19 19:35:41 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/20 18:15:27 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,7 @@ namespace Logger
 		case SUCCESS:
 			bold_clr = BOLD_GREEN;
 			clr = GREEN;
-			lvl = "SUCCESS";
+			lvl = "INFO";
 			break;
 		case WARNING:
 			bold_clr = BOLD_YELLOW;
@@ -54,18 +54,19 @@ namespace Logger
 		default:
 			break;
 		}
-		std::stringstream consoleOutput;
+		std::stringstream consoleOutput, logFileOutput;
 		std::string timestr = Utils::getCurrentTime();
 		
-		consoleOutput << DEF << timestr << bold_clr << " [" << lvl << "]" << clr << " - " << message << DEF << std::endl;
+		consoleOutput << DEF << "[" << timestr << "] " << bold_clr << " [" << lvl << "]" << clr << " - " << message << DEF << std::endl;
+		logFileOutput << "[" << timestr << "]  [" << lvl << "]" << " - " << message << std::endl;
 		std::cout << consoleOutput.str();
 		if (log_file.is_open())
-			log_file.write(consoleOutput.str().c_str(), consoleOutput.str().size());
+			log_file.write(logFileOutput.str().c_str(), logFileOutput.str().size());
 	}
 	
 	void setLogFile(const std::string& filename)
 	{
-		log_file.open(filename.c_str());
+		log_file.open(filename.c_str(), std::ios::out | std::ios::app);
 	}
 	
 	void saveLog()
