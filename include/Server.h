@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:18:44 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/17 23:47:07 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/23 17:52:02 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,15 +22,20 @@ public:
 	Server(const Server&);
 	Server(const std::string&);
 	Server& operator=(const Server&);
-	in_addr getHost() const;
-	int getPort() const;
+	in_addr_t getHost() const;
+	void setup();
+	int getSockFd() const;
 	void printDetails() const;
-	virtual ~Server();
+	~Server();
 private:
 	void _parseSource(const std::string&);
+	void _setupServAddr();
+private:
 	std::string _name, _ip_addr;
-	in_addr _host;
-	int _port;
+	bool _ready;
+	struct sockaddr_in _servaddr;
+	in_addr_t _host;
+	int _port, _sockfd;
 	Location *_root_loc;
 	std::map<unsigned int, std::string> _error_pages;
 	unsigned int _max_body_size;

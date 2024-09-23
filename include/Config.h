@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:10:29 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/19 19:18:23 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/23 18:11:46 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,11 +19,15 @@ class Config
 public:
 	Config();
 	Config(const Config&);
-	Config(const std::string&);
+	void load(const std::string&);
+	void setup();
 	Config& operator=(const Config&);
-	virtual ~Config();
+	~Config();
 private:
-	void		_createServers();
+	void _createServers();
+	void _setupServers();
+private:
+	bool _loaded;
 	std::string _source;
 	std::vector<Server*> _servers;
 };

@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 16:23:29 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/18 00:03:46 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/23 17:52:06 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,7 @@ public:
 	void addMethod(const std::string&);
 	void addChildren(const std::string&);
 	Location& operator=(const Location&);
-	virtual ~Location();
+	~Location();
 private:
 	std::string _name, _root, _alias, _index;
 	bool _auto_index;
@@ -35,5 +35,4 @@ private:
 	std::vector<std::string> _cgi_paths;
 	std::vector<std::string> _cgi_exts;
 	std::map<std::string, Location*> _locations;
-
 };

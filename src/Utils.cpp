@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/15 00:27:44 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/19 19:21:54 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/23 17:38:56 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -120,7 +120,7 @@ std::vector<std::string> Utils::splitString(const std::string& str, const std::s
     return tokens;
 }
 
-int Utils::inet_pton_v4(const std::string& ip_str, in_addr *addr) {
+int Utils::inet_pton_v4(const std::string& ip_str, in_addr_t *addr) {
     // Split the IP string by '.' and store in an array
     unsigned int octets[4];
     std::istringstream iss(ip_str);
@@ -130,7 +130,7 @@ int Utils::inet_pton_v4(const std::string& ip_str, in_addr *addr) {
     if ((iss >> octets[0] >> dot >> octets[1] >> dot >> octets[2] >> dot >> octets[3]) &&
         dot == '.' && (octets[0] <= 255 && octets[1] <= 255 && octets[2] <= 255 && octets[3] <= 255)) {
         // Convert the IP string to a 32-bit integer in network byte order (big-endian)
-        addr->s_addr = (octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3];
+        *(addr) = (octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3];
         return 1; // Success
     }
 
@@ -147,7 +147,7 @@ void Utils::verify_args(const std::vector<std::string>& strs, size_t min, size_t
 		line += " " + strs[i];
 	}
 
-	throw "Invalid argument list : " + line;
+	throw std::runtime_error("Invalid argument list : " + line);
 }
 
 std::string Utils::getCurrentTime()
@@ -176,7 +176,7 @@ std::string Utils::readFile(const std::string& filename)
 	std::ifstream file(filename.c_str());
 
 	if (!file.is_open())
-		throw "Failed to open file : " + filename;
+		throw std::runtime_error("Failed to open file : " + filename);
 	while (file)
 	{
 		char c;

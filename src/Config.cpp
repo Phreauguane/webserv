@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:10:32 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/19 19:36:46 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/23 18:26:23 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,13 +19,15 @@ void Config::_createServers()
 	while (found != std::string::npos)
 	{
 		std::string srv_source = Utils::readBrackets(_source, found);
-		_servers.push_back(new Server(srv_source));
+		Server *srv = new Server(srv_source);
+		_servers.push_back(srv);
 		found = _source.find("server", found + srv_source.size());
 	}
 }
 
 Config::Config()
 {
+	_loaded = false;
 	// default constructor to do
 }
 
@@ -34,19 +36,40 @@ Config::Config(const Config& copy)
 	*this = copy;
 }
 
-Config::Config(const std::string& filename)
+void Config::load(const std::string& filename)
 {
+	Logger::log("Loading config file : " + filename, INFO);
+
 	_source = Utils::readFile(filename); // Read full config file source
 	_source = Utils::removeComments(_source); // Remove comments from source
 	
 	_createServers();
+	
+	Logger::log("Config file loaded", SUCCESS);
+}
 
-	// for (size_t i = 0; i < _servers.size(); i++)
-	// {
-	// 	_servers[i]->printDetails();
-	// 	std::cout << std::endl;
-	// }
-	Logger::log("Config file loaded : " + filename, SUCCESS);
+void Config::setup()
+{
+	_setupServers();
+
+	Logger::log("Setup finished", SUCCESS);
+}
+
+void Config::_setupServers()
+{
+	try
+	{
+		for (size_t i = 0; i < _servers.size(); i++)
+		{
+			if (_servers[i])
+				_servers[i]->setup();
+		}
+	}
+	catch (const std::runtime_error& e)
+	{
+		Logger::log(e.what(), ERROR);
+		throw std::runtime_error("Failed to setup servers");
+	}
 }
 
 Config::~Config()
@@ -55,15 +78,26 @@ Config::~Config()
 	{
 		delete _servers[i];
 	}
+	_servers.clear();
 	Logger::log("Deleted config object", DEBUG);
 }
 
 Config& Config::operator=(const Config& copy)
 {
-	_source = copy._source;
-	for (size_t i = 0; i < copy._servers.size(); i++)
+	if (this != &copy)
 	{
-		_servers.push_back(new Server(*(copy._servers[i])));
+		for (size_t i = 0; i < _servers.size(); i++)
+		{
+			delete _servers[i];
+		}
+		_servers.clear();
+		
+		_loaded = copy._loaded;
+		_source = copy._source;
+		for (size_t i = 0; i < copy._servers.size(); i++)
+		{
+			_servers.push_back(new Server(*(copy._servers[i])));
+		}
 	}
 	return *this;
 }

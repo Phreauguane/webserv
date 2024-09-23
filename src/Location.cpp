@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/15 00:05:31 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/18 00:08:09 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/23 17:40:28 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -129,10 +129,10 @@ void Location::parseLine(const std::vector<std::string>& strs)
 		{
 			line += " " + strs[i];
 		}
-		throw "Unkown identifier : " + line;
+		throw std::runtime_error("Unkown identifier : " + line);
 	}
 	else
-		throw "Unhandled parsing error";
+		throw std::runtime_error("Unhandled parsing error");
 }
 
 void Location::parseConfig(const std::string& configString) {

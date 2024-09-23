@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:07:53 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/20 18:15:44 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/23 18:12:13 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,14 +19,15 @@ int	main(int ac, char **av)
 	Logger::log("Program started", INFO);
 	(void) ac;
 	(void) av;
-
+	Config config;
 	try
 	{
-		Config conf("default.conf");
+		config.load("default.conf");
+		config.setup();
 	}
-	catch (std::string error)
+	catch (const std::runtime_error& e)
 	{
-		Logger::log(error, ERROR);
+		Logger::log(e.what(), ERROR);
 	}
 	Logger::log("Program ended", INFO);
 	Logger::saveLog();

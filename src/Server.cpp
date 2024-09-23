@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:19:33 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/19 19:36:37 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/23 18:25:44 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,8 +56,7 @@ void Server::_parseSource(const std::string& source)
 		else if (strs[0] == "host")
 		{
 			Utils::verify_args(strs, 2, 2);
-			if (!Utils::inet_pton_v4(strs[1], &_host))
-				throw "Invalid host format : " + strs[1];
+			_host = inet_addr(strs[1].c_str());
 			_ip_addr = strs[1];
 		}
 		else if (strs[0] == "listen")
@@ -65,7 +64,7 @@ void Server::_parseSource(const std::string& source)
 			Utils::verify_args(strs, 2, 2);
 			_port = std::atoi(strs[1].c_str());
 			if (_port > 9999)
-				throw "Invalid port format : " + strs[1];
+				throw std::runtime_error("Invalid port format : " + strs[1]);
 		}
 		else if (strs[0] == "error_page")
 		{
@@ -108,6 +107,11 @@ void Server::printDetails() const
 	std::cout << "╚═══════════════════════════════════════╝" << std::endl;
 }
 
+int Server::getSockFd() const
+{
+	return _sockfd;
+}
+
 Server::~Server()
 {
 	if (_root_loc)
@@ -121,4 +125,42 @@ Server& Server::operator=(const Server& copy)
 	_root_loc = new Location(*(copy._root_loc));
 	_error_pages = copy._error_pages;
 	return *this;
+}
+
+void Server::_setupServAddr()
+{
+	std::memset(&(_servaddr), 0, sizeof(_servaddr));
+	_servaddr.sin_family = AF_INET;
+	_servaddr.sin_addr.s_addr = _host;
+	_servaddr.sin_port = htons(_port);
+}
+
+void Server::setup()
+{
+	if ((_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+		throw std::runtime_error("Failed to create socket");
+	Logger::log("Socket created", DEBUG);
+	
+	_setupServAddr();
+	
+	int option_value = 1;
+    if (setsockopt(_sockfd, SOL_SOCKET, SO_REUSEADDR, 
+		&option_value, sizeof(int)) < 0)
+		throw std::runtime_error("Failed to set socket options");
+	
+	std::ostringstream oss;
+	oss << "Binding socket at " << _ip_addr << ":" << _port << ".";
+	Logger::log(oss.str(), DEBUG);
+	if (bind(_sockfd, (struct sockaddr *) &_servaddr, sizeof(_servaddr)) < 0)
+		throw std::runtime_error("Failed to bind socket");
+	
+	Logger::log("Listening for connections", INFO);
+	if (listen(_sockfd, 512) < 0)
+		throw std::runtime_error("Failed to listen on socket");
+	
+	if (fcntl(_sockfd, F_SETFL, O_NONBLOCK) < 0)
+		throw std::runtime_error("Failed to set socket in non-blocking mode");
+	Logger::log("Socket put in non-blocking mode", INFO);
+	_ready = true;
+	Logger::log("Server ready", SUCCESS);
 }
