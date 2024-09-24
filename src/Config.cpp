@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:10:32 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/24 15:01:52 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/24 22:48:32 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,10 +57,17 @@ void Config::setup()
 
 void Config::run()
 {
-	_epollfd = epoll_create1(0);
-	if (_epollfd < 0)
-		throw std::runtime_error("Failed to create epoll instance");
-	Logger::log("epoll instance created", INFO);
+	_initEpoll();
+
+	struct epoll_event events[MAX_EVENTS];
+
+	while (1)
+	{
+		int nfds = epoll_wait(_epollfd, events, MAX_EVENTS, -1);
+		if (nfds < 0)
+			throw std::runtime_error("epoll_wait error");
+			
+	}
 }
 
 void Config::_setupServers()
@@ -92,6 +99,11 @@ void Config::_addFd(int fd, uint32_t events)
 
 void Config::_initEpoll()
 {
+	_epollfd = epoll_create(1);
+	if (_epollfd < 0)
+		throw std::runtime_error("Failed to create epoll instance");
+	Logger::log("epoll instance created", INFO);
+	
 	for (size_t i = 0; i < _servers.size(); ++i)
 	{
 		_addFd(_servers[i]->getSockFd(), EPOLLIN);
