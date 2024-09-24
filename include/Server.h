@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:18:44 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/23 17:52:02 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/24 14:33:21 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@ public:
 	Server& operator=(const Server&);
 	in_addr_t getHost() const;
 	void setup();
+	void terminate();
 	int getSockFd() const;
 	void printDetails() const;
 	~Server();

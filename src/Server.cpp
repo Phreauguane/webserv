@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:19:33 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/23 18:25:44 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/24 14:33:24 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -160,7 +160,11 @@ void Server::setup()
 	
 	if (fcntl(_sockfd, F_SETFL, O_NONBLOCK) < 0)
 		throw std::runtime_error("Failed to set socket in non-blocking mode");
-	Logger::log("Socket put in non-blocking mode", INFO);
 	_ready = true;
 	Logger::log("Server ready", SUCCESS);
+}
+
+void Server::terminate()
+{
+	close(_sockfd);
 }

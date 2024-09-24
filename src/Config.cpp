@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:10:32 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/23 18:26:23 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/24 15:01:52 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,11 +55,19 @@ void Config::setup()
 	Logger::log("Setup finished", SUCCESS);
 }
 
+void Config::run()
+{
+	_epollfd = epoll_create1(0);
+	if (_epollfd < 0)
+		throw std::runtime_error("Failed to create epoll instance");
+	Logger::log("epoll instance created", INFO);
+}
+
 void Config::_setupServers()
 {
 	try
 	{
-		for (size_t i = 0; i < _servers.size(); i++)
+		for (size_t i = 0; i < _servers.size(); ++i)
 		{
 			if (_servers[i])
 				_servers[i]->setup();
@@ -72,9 +80,28 @@ void Config::_setupServers()
 	}
 }
 
+void Config::_addFd(int fd, uint32_t events)
+{
+	struct epoll_event event;
+	event.events = events;
+	event.data.fd = fd;
+
+	if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, fd, &event) < 0)
+		throw std::runtime_error("Failed to add fd to epoll instance");
+}
+
+void Config::_initEpoll()
+{
+	for (size_t i = 0; i < _servers.size(); ++i)
+	{
+		_addFd(_servers[i]->getSockFd(), EPOLLIN);
+	}
+	// TO DO
+}
+
 Config::~Config()
 {
-	for (size_t i = 0; i < _servers.size(); i++)
+	for (size_t i = 0; i < _servers.size(); ++i)
 	{
 		delete _servers[i];
 	}
@@ -86,7 +113,7 @@ Config& Config::operator=(const Config& copy)
 {
 	if (this != &copy)
 	{
-		for (size_t i = 0; i < _servers.size(); i++)
+		for (size_t i = 0; i < _servers.size(); ++i)
 		{
 			delete _servers[i];
 		}
@@ -94,7 +121,7 @@ Config& Config::operator=(const Config& copy)
 		
 		_loaded = copy._loaded;
 		_source = copy._source;
-		for (size_t i = 0; i < copy._servers.size(); i++)
+		for (size_t i = 0; i < copy._servers.size(); ++i)
 		{
 			_servers.push_back(new Server(*(copy._servers[i])));
 		}
