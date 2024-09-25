@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:10:32 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/24 22:48:32 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/25 18:25:07 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,21 +52,73 @@ void Config::setup()
 {
 	_setupServers();
 
-	Logger::log("Setup finished", SUCCESS);
+	Logger::log("Server ready", SUCCESS);
 }
 
-void Config::run()
+void Config::run(bool *shouldClose)
 {
 	_initEpoll();
 
-	struct epoll_event events[MAX_EVENTS];
-
+	Logger::log("Waiting for connections...", INFO);
 	while (1)
 	{
-		int nfds = epoll_wait(_epollfd, events, MAX_EVENTS, -1);
+		int nfds = epoll_wait(_epollfd, _epollevents, MAX_EVENTS, -1);
+		if (*shouldClose)
+			break;
 		if (nfds < 0)
 			throw std::runtime_error("epoll_wait error");
-			
+		_checkForConnections(nfds);
+		_handleRequests(nfds);
+	}
+}
+
+void Config::_checkForConnections(size_t nfds)
+{
+	for (size_t i = 0; i < nfds; i++)
+	{
+		for (size_t j = 0; j < _servers.size(); j++)
+		{
+			if (_epollevents[i].data.fd == _servers[j]->getSockFd())
+			{
+				Client *cli = new Client(_servers[j]);
+				this->_addFd(cli->getFd(), EPOLLIN | EPOLLET);
+				_clients.push_back(cli);
+			}
+		}
+	}
+}
+
+void Config::_handleRequests(size_t nfds)
+{
+	for (size_t i = 0; i < nfds; i++)
+	{
+		for (size_t j = 0; j < _clients.size(); j++)
+		{
+			if (_epollevents[i].data.fd == _clients[j]->getFd())
+			{
+				bool disconnect = false;
+				if (_epollevents[i].events & EPOLLIN)
+				{
+					if (_clients[j]->readRequest())
+						_modFd(_clients[j]->getFd(), EPOLLOUT | EPOLLET);
+					else
+						disconnect = true;
+				}
+				else if (_epollevents[i].events & EPOLLOUT)
+				{
+					if (_clients[j]->sendMsg("miaou"))
+						Logger::log("Sent response to client", INFO);
+					else
+						disconnect = true;
+				}
+				if (disconnect)
+				{
+					delete _clients[j];
+					_clients.erase(_clients.begin() + j);
+					Logger::log("Client disconnected", INFO);
+				}
+			}
+		}
 	}
 }
 
@@ -97,18 +149,28 @@ void Config::_addFd(int fd, uint32_t events)
 		throw std::runtime_error("Failed to add fd to epoll instance");
 }
 
+void Config::_modFd(int fd, uint32_t events)
+{
+	struct epoll_event event;
+	event.events = events;
+	event.data.fd = fd;
+
+	if (epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &event) < 0)
+		throw std::runtime_error("Failed to modify fd in epoll instance");
+}
+
 void Config::_initEpoll()
 {
 	_epollfd = epoll_create(1);
 	if (_epollfd < 0)
 		throw std::runtime_error("Failed to create epoll instance");
-	Logger::log("epoll instance created", INFO);
 	
 	for (size_t i = 0; i < _servers.size(); ++i)
 	{
 		_addFd(_servers[i]->getSockFd(), EPOLLIN);
 	}
-	// TO DO
+
+	Logger::log("epoll instance created", DEBUG);
 }
 
 Config::~Config()
@@ -118,6 +180,11 @@ Config::~Config()
 		delete _servers[i];
 	}
 	_servers.clear();
+	for (size_t i = 0; i < _clients.size(); ++i)
+	{
+		delete _clients[i];
+	}
+	_clients.clear();
 	Logger::log("Deleted config object", DEBUG);
 }
 

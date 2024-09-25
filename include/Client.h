@@ -1,40 +1,35 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   webserv.h                                          :+:      :+:    :+:   */
+/*   Client.h                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/09/13 14:36:58 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/25 17:56:04 by jde-meo          ###   ########.fr       */
+/*   Created: 2024/09/25 16:17:08 by jde-meo           #+#    #+#             */
+/*   Updated: 2024/09/25 17:39:25 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 
-#include <iostream>
-#include <stdexcept>
-#include <unistd.h>
-#include <fcntl.h>
+#include "webserv.h"
+#include "Server.h"
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/epoll.h>
-
-#include <cstdlib>
-#include <cstring>
-#include <ctime>
-#include <csignal>
-
-#include <fstream>
-#include <sstream>
-
-#include <string>
-#include <map>
-#include <vector>
-
-#define MAX_EVENTS 512
-
-#include "Logger.h"
+class Client
+{
+public:
+	Client();
+	Client(const Client&);
+	Client(Server*);
+	Client& operator=(const Client&);
+	int getFd();
+	std::string getRequest();
+	bool sendMsg(const std::string&);
+	bool readRequest();
+	~Client();
+private:
+	Server *_server;
+	size_t _size;
+	std::string _request;
+	int _fd;
+};

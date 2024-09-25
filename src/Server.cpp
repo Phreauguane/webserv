@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:19:33 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/24 14:33:24 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/25 18:23:44 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -154,14 +154,30 @@ void Server::setup()
 	if (bind(_sockfd, (struct sockaddr *) &_servaddr, sizeof(_servaddr)) < 0)
 		throw std::runtime_error("Failed to bind socket");
 	
-	Logger::log("Listening for connections", INFO);
+	Logger::log("Listening for connections", DEBUG);
 	if (listen(_sockfd, 512) < 0)
 		throw std::runtime_error("Failed to listen on socket");
 	
 	if (fcntl(_sockfd, F_SETFL, O_NONBLOCK) < 0)
 		throw std::runtime_error("Failed to set socket in non-blocking mode");
 	_ready = true;
-	Logger::log("Server ready", SUCCESS);
+	Logger::log("Server " + getIp() + " OK", DEBUG);
+}
+
+std::string Server::getIp()
+{
+	std::stringstream ss;
+
+	ss << _ip_addr << ":" << _port;
+
+	return ss.str();	
+}
+
+size_t Server::getMaxBodySize()
+{
+	if (_max_body_size == 0)
+		return 1024;
+	return _max_body_size;
 }
 
 void Server::terminate()

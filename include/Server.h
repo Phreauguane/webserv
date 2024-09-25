@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:18:44 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/24 14:33:21 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/25 16:29:57 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,8 @@ public:
 	void setup();
 	void terminate();
 	int getSockFd() const;
+	std::string getIp();
+	size_t getMaxBodySize();
 	void printDetails() const;
 	~Server();
 private:
