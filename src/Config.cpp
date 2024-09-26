@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:10:32 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/25 18:25:07 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/26 13:34:52 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,8 +27,7 @@ void Config::_createServers()
 
 Config::Config()
 {
-	_loaded = false;
-	// default constructor to do
+	//
 }
 
 Config::Config(const Config& copy)
@@ -197,8 +196,7 @@ Config& Config::operator=(const Config& copy)
 			delete _servers[i];
 		}
 		_servers.clear();
-		
-		_loaded = copy._loaded;
+
 		_source = copy._source;
 		for (size_t i = 0; i < copy._servers.size(); ++i)
 		{

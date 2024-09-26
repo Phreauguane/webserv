@@ -6,17 +6,16 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:19:33 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/25 18:23:44 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/26 13:28:08 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.h"
 #include "Utils.h"
 
-// calls the constructor with an empty config as parameter
 Server::Server()
 {
-	// to do
+	//
 }
 
 Server::Server(const Server& copy)
@@ -25,7 +24,7 @@ Server::Server(const Server& copy)
 }
 
 void Server::_parseSource(const std::string& source)
-{// std::istringstream stream(configString);
+{
 	size_t position = 0;
 	std::vector<std::string> lines = Utils::splitString(source, "\n");
 	
@@ -112,12 +111,6 @@ int Server::getSockFd() const
 	return _sockfd;
 }
 
-Server::~Server()
-{
-	if (_root_loc)
-		delete _root_loc;
-}
-
 Server& Server::operator=(const Server& copy)
 {
 	_host = copy._host;
@@ -180,7 +173,10 @@ size_t Server::getMaxBodySize()
 	return _max_body_size;
 }
 
-void Server::terminate()
+Server::~Server()
 {
-	close(_sockfd);
+	if (_ready)
+		close(_sockfd);
+	if (_root_loc)
+		delete _root_loc;
 }

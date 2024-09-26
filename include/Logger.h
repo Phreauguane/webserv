@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/19 17:43:11 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/19 19:36:02 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/26 13:37:54 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,11 +35,12 @@
 #define BOLD_WHITE "\033[1;37m"
 
 enum log_level{
-	DEBUG = 0,
-	INFO = 1,
-	SUCCESS = 2,
-	WARNING = 3,
-	ERROR = 4
+	TEXT = 0,
+	DEBUG = 1,
+	INFO = 2,
+	SUCCESS = 3,
+	WARNING = 4,
+	ERROR = 5
 };
 
 namespace Logger

@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/15 00:05:31 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/23 17:40:28 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/26 13:28:00 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,19 +15,16 @@
 
 Location::Location()
 {
-	_auto_index = false;
-	// Default constructor (no idea what's needed whatsoever)
+	//
 }
 
 Location::Location(const Location& copy)
 {
-	_auto_index = false;
 	*this = copy;
 }
 
 Location::Location(const std::string& source)
 {
-	_auto_index = false;
 	parseConfig(source);	
 }
 
@@ -118,7 +115,12 @@ void Location::parseLine(const std::vector<std::string>& strs)
     }
 	else if (strs[0] == "return")
 	{
-		// redirect page -> TO DO ?
+		Utils::verify_args(strs, 2, 3);
+		_return = "return";
+		for (size_t i = 1; i < strs.size(); i++)
+		{
+			_return += " " + strs[i];
+		}
 	}
 	else if (strs[0] == "{" || strs[0] == "}")
 	{}

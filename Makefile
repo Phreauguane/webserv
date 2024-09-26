@@ -10,7 +10,8 @@ SRC		=	main.cpp			\
 			src/Location.cpp	\
 			src/Utils.cpp		\
 			src/Logger.cpp		\
-			src/Client.cpp
+			src/Client.cpp		\
+			src/Request.cpp
 			
 
 all		:

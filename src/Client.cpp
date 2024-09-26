@@ -6,17 +6,17 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/25 16:20:16 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/25 18:13:18 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/26 14:01:25 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Client.h"
 
-Client::Client() {}
+Client::Client() : _req(NULL) {}
 
-Client::Client(const Client& copy) { *this = copy; }
+Client::Client(const Client& copy) : _req(NULL) { *this = copy; }
 
-Client::Client(Server *server)
+Client::Client(Server *server) : _req(NULL)
 {
 	_server = server;
 	_fd = accept(_server->getSockFd(), NULL, NULL);
@@ -30,6 +30,8 @@ Client::Client(Server *server)
 
 Client::~Client()
 {
+	if (_req)
+		delete _req;
 	close(_fd);
 }
 
@@ -48,12 +50,6 @@ int Client::getFd()
 	return _fd;
 }
 
-/*
-	reads from the client FD
-
-	returns true if there is something to read
-	returns false if the FD is empty
-*/
 bool Client::readRequest()
 {
 	char buffer[_size];
@@ -66,6 +62,9 @@ bool Client::readRequest()
 		return false;
 	_request.clear();
 	_request = buffer;
+	if (_req)
+		delete _req;
+	_req = new Request(_request);
 	return true;
 }
 

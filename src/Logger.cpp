@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Logger.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/19 18:36:07 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/20 18:15:27 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/26 13:39:40 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
 namespace Logger
 {
 	std::fstream log_file;
-	log_level min_lvl = DEBUG;
+	log_level min_lvl = TEXT;
 	
 	void log(const std::string& message, const log_level level)
 	{
@@ -26,6 +26,11 @@ namespace Logger
 		std::string bold_clr, clr, lvl;
 		switch (level)
 		{
+		case TEXT:
+			bold_clr = DEF;
+			clr = DEF;
+			lvl = "TEXT";
+			break;
 		case DEBUG:
 			bold_clr = BOLD_BLUE;
 			clr = BLUE;

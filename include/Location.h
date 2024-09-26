@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 16:23:29 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/23 17:52:06 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/26 13:25:01 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,7 @@ public:
 	Location& operator=(const Location&);
 	~Location();
 private:
-	std::string _name, _root, _alias, _index;
+	std::string _name, _root, _alias, _index, _return;
 	bool _auto_index;
 	std::vector<std::string> _allowed_methods;
 	std::vector<std::string> _cgi_paths;
