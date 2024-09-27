@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:10:29 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/26 13:17:30 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/27 14:10:50 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@ class Config
 {
 public:
 	Config();
+	Config(char**);
 	Config(const Config&);
 	void load(const std::string&);
 	void setup();
@@ -34,6 +35,7 @@ private:
 	void _checkForConnections(size_t);
 	void _handleRequests(size_t);
 private:
+	char **_env;
 	int _epollfd;
 	struct epoll_event _epollevents[MAX_EVENTS];
 	std::string _source;

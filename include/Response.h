@@ -1,38 +1,30 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Client.h                                           :+:      :+:    :+:   */
+/*   Response.h                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/09/25 16:17:08 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/27 15:49:34 by jde-meo          ###   ########.fr       */
+/*   Created: 2024/09/27 15:52:52 by jde-meo           #+#    #+#             */
+/*   Updated: 2024/09/27 15:56:19 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 
 #include "webserv.h"
-#include "Server.h"
-#include "Request.h"
 
-class Client
+class Response
 {
 public:
-	Client();
-	Client(const Client&);
-	Client(Server*);
-	Client& operator=(const Client&);
-	int getFd();
-	std::string getRequest();
-	bool sendMsg(const std::string&);
-	bool readRequest();
-	~Client();
-private:
-	Server *_server;
-	size_t _size;
-	std::string _request;
-	std::string _response;
-	Request *_req;
-	int _fd;
+	Response();
+	Response(const Response&);
+	Response &operator=(const Response&);
+	std::string build();
+public:
+	std::string http;
+	int status;
+	std::string phrase;
+	std::string content_type;
+	std::string body;
 };

@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:19:33 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/26 13:28:08 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/27 15:52:14 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,9 +84,10 @@ void Server::_parseSource(const std::string& source)
     }
 }
 
-Server::Server(const std::string& source)
+Server::Server(const std::string& source, char **env)
 {
-	_root_loc = new Location();
+	_env = env;
+	_root_loc = new Location(_env);
 	_parseSource(source);
 }
 
@@ -113,6 +114,7 @@ int Server::getSockFd() const
 
 Server& Server::operator=(const Server& copy)
 {
+	_env = copy._env;
 	_host = copy._host;
 	_port = copy._port;
 	_root_loc = new Location(*(copy._root_loc));
@@ -164,6 +166,23 @@ std::string Server::getIp()
 	ss << _ip_addr << ":" << _port;
 
 	return ss.str();	
+}
+
+Location *Server::_getLocation(const std::string& path)
+{
+	return _root_loc->getSubLoc(path);
+}
+
+std::string Server::buildResponse(const Request& request)
+{
+	std::string response = "HTTP/1.1 200 OK\r\n";
+	std::stringstream length;
+	length << "Content-Length: " << msg.length();
+	response += length.str() + "\r\n";
+	response += "Content-Type: text/plain\r\n";
+	response += "\r\n";  // Blank line between headers and body
+	response += msg;
+	return _getLocation(request.path)->getName();
 }
 
 size_t Server::getMaxBodySize()

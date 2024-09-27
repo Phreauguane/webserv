@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/15 00:05:31 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/26 13:28:00 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/27 15:49:09 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,13 +18,19 @@ Location::Location()
 	//
 }
 
+Location::Location(char **env)
+{
+	_env = env;
+}
+
 Location::Location(const Location& copy)
 {
 	*this = copy;
 }
 
-Location::Location(const std::string& source)
+Location::Location(const std::string& source, char **env)
 {
+	_env = env;
 	parseConfig(source);	
 }
 
@@ -149,7 +155,11 @@ void Location::parseConfig(const std::string& configString) {
 		
 		if (strs[0] == "location" && i == 0) // main location -> store name
 		{
-			_name = strs[1];
+			size_t start = strs[1].find("/");
+			if (start == std::string::npos)
+				_name = strs[1];
+			else
+				_name = strs[1].substr(start + 1, strs[1].size() - (start + 1));
 		}
 		else if (strs[0] == "location") // recursive location -> call Location(const string&)
 		{
@@ -171,8 +181,34 @@ void Location::addMethod(const std::string& method)
 
 void Location::addChildren(const std::string& source)
 {
-	Location* loc = new Location(source);
+	Location* loc = new Location(source, _env);
 	_locations[loc->_name] = loc;
+}
+
+Location *Location::getSubLoc(const std::string &path)
+{
+	if (path.size() == 0 || path == "/" || path == _name || path == "/" + _name)
+		return this;
+	
+	std::vector<std::string> names = Utils::splitString(path, "/");
+	
+	std::string subpath;
+	if (names.size() > 1)
+	{
+		size_t pos = path.find(names[1]);
+		subpath = path.substr(pos, path.size() - pos);
+	}
+	else if (names.size() == 1)
+	{
+		subpath = "";
+	}
+	
+	for (std::map<std::string, Location*>::const_iterator it = _locations.begin(); it != _locations.end(); ++it)
+	{
+		if (names[0] == it->second->getName())
+			return it->second->getSubLoc(subpath);
+	}
+	return this;
 }
 
 Location::~Location()
@@ -185,6 +221,7 @@ Location::~Location()
 
 Location& Location::operator=(const Location& copy)
 {
+	_env = copy._env;
 	_name = copy._name;
 	_root = copy._root;
 	_index = copy._index;

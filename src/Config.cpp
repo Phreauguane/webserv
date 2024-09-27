@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:10:32 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/26 13:34:52 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/27 14:45:02 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@ void Config::_createServers()
 	while (found != std::string::npos)
 	{
 		std::string srv_source = Utils::readBrackets(_source, found);
-		Server *srv = new Server(srv_source);
+		Server *srv = new Server(srv_source, _env);
 		_servers.push_back(srv);
 		found = _source.find("server", found + srv_source.size());
 	}
@@ -28,6 +28,11 @@ void Config::_createServers()
 Config::Config()
 {
 	//
+}
+
+Config::Config(char **env)
+{
+	_env = env;
 }
 
 Config::Config(const Config& copy)
@@ -80,7 +85,7 @@ void Config::_checkForConnections(size_t nfds)
 			if (_epollevents[i].data.fd == _servers[j]->getSockFd())
 			{
 				Client *cli = new Client(_servers[j]);
-				this->_addFd(cli->getFd(), EPOLLIN | EPOLLET);
+				this->_addFd(cli->getFd(), EPOLLIN | EPOLLOUT | EPOLLET);
 				_clients.push_back(cli);
 			}
 		}
@@ -99,7 +104,7 @@ void Config::_handleRequests(size_t nfds)
 				if (_epollevents[i].events & EPOLLIN)
 				{
 					if (_clients[j]->readRequest())
-						_modFd(_clients[j]->getFd(), EPOLLOUT | EPOLLET);
+						_modFd(_clients[j]->getFd(), EPOLLIN | EPOLLOUT | EPOLLET);
 					else
 						disconnect = true;
 				}
@@ -108,7 +113,10 @@ void Config::_handleRequests(size_t nfds)
 					if (_clients[j]->sendMsg("miaou"))
 						Logger::log("Sent response to client", INFO);
 					else
+					{
+						Logger::log("Can't send response, Disconnecting...", ERROR);
 						disconnect = true;
+					}
 				}
 				if (disconnect)
 				{
@@ -166,7 +174,7 @@ void Config::_initEpoll()
 	
 	for (size_t i = 0; i < _servers.size(); ++i)
 	{
-		_addFd(_servers[i]->getSockFd(), EPOLLIN);
+		_addFd(_servers[i]->getSockFd(), EPOLLIN | EPOLLOUT | EPOLLET);
 	}
 
 	Logger::log("epoll instance created", DEBUG);
@@ -196,11 +204,23 @@ Config& Config::operator=(const Config& copy)
 			delete _servers[i];
 		}
 		_servers.clear();
+		for (size_t i = 0; i < _clients.size(); ++i)
+		{
+			delete _clients[i];
+		}
+		_clients.clear();
 
+		_env = copy._env;
+		_epollfd = copy._epollfd;
+		std::memcpy(_epollevents, copy._epollevents, MAX_EVENTS * sizeof(epoll_event));
 		_source = copy._source;
 		for (size_t i = 0; i < copy._servers.size(); ++i)
 		{
 			_servers.push_back(new Server(*(copy._servers[i])));
+		}
+		for (size_t i = 0; i < copy._clients.size(); ++i)
+		{
+			_clients.push_back(new Client(*(copy._clients[i])));
 		}
 	}
 	return *this;

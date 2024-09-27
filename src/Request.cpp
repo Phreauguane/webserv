@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/26 13:12:50 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/26 14:00:58 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/27 14:21:56 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,8 +34,6 @@ void Request::parseRequest()
 	std::vector<std::string> head_body = Utils::splitString(request, "\n\n");
 	if (head_body.size() > 1)
 		body = head_body[1];
-	std::cout << "header :\n" << head_body[0] << std::endl;
-	std::cout << "body :\n" << body << std::endl;
 	std::vector<std::string> lines = Utils::splitString(head_body[0], "\n");
 	for (size_t i = 0; i < lines.size(); i++)
 	{
@@ -76,6 +74,21 @@ Request& Request::operator=(const Request& copy)
 	keep_alive = copy.keep_alive;
 	body = copy.body;
 	return *this;
+}
+
+void Request::logData()
+{
+	Logger::log("method = " + method, TEXT);
+	Logger::log("path = " + path, TEXT);
+	Logger::log("http_version = " + http_version, TEXT);
+	std::cout << std::endl;
+	Logger::log("host = " + host, TEXT);
+	Logger::log("user_agent = " + user_agent, TEXT);
+	if (keep_alive)
+		Logger::log("keep_alive = TRUE", TEXT);
+	else
+		Logger::log("keep_alive = FALSE", TEXT);
+	Logger::log("body = \\\n" + body, TEXT);
 }
 
 Request::~Request()

@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/25 16:20:16 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/26 14:01:25 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/27 15:52:05 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,8 +24,6 @@ Client::Client(Server *server) : _req(NULL)
 		throw std::runtime_error("Failed to accept connection to " + _server->getIp());
 	_size = _server->getMaxBodySize();
 	Logger::log("Client connected to " + _server->getIp(), SUCCESS);
-	// readRequest();
-	// std::cout << "IN CONSTRUCTOR\n" << _request << std::endl;
 }
 
 Client::~Client()
@@ -65,20 +63,14 @@ bool Client::readRequest()
 	if (_req)
 		delete _req;
 	_req = new Request(_request);
+	_response = _server->buildResponse(*_req);
 	return true;
 }
 
 bool Client::sendMsg(const std::string& msg)
 {
-	std::string response = "HTTP/1.1 200 OK\r\n";
-	std::stringstream length;
-	length << "Content-Length: " << msg.length();
-	response += length.str() + "\r\n";
-	response += "Content-Type: text/plain\r\n";
-	response += "\r\n";  // Blank line between headers and body
-	response += msg;
-	const char *message = response.c_str();
-	ssize_t total_len = response.size();
+	const char *message = msg.c_str();
+	ssize_t total_len = msg.size();
 	ssize_t sent = send(_fd, message, total_len, MSG_NOSIGNAL);
 	return sent == total_len;
 }

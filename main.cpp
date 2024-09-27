@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:07:53 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/26 14:06:11 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/27 14:16:23 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@ void sigHandler(int signum)
 	}
 }
 
-int	main(int ac, char **av)
+int	main(int ac, char **av, char **env)
 {
 	signal(SIGINT, sigHandler);
 	std::string config_file = "default.conf";
@@ -36,13 +36,10 @@ int	main(int ac, char **av)
 		Logger::log("Too much arguments", ERROR);
 		return -1;
 	}
-	// Logger::setLogFile("default.log");
-	// Logger::setMinLogLevel(INFO);
-	(void) ac;
-	(void) av;
-	Config config;
+	
 	try
 	{
+		Config config(env);
 		config.load(config_file);
 		config.setup();
 		config.run(&shouldClose);

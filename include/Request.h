@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/26 13:02:10 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/26 13:58:06 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/27 14:17:54 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@ public:
 	Request(const std::string&);
 	void parseRequest();
 	void parseBody();
+	void logData();
 	Request& operator=(const Request&);
 	~Request();
 public:
