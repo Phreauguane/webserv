@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/25 16:20:16 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/29 15:03:48 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/29 15:35:39 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,7 +72,7 @@ bool Client::sendResponse()
 	if (_reps.size() == 0)
 	{
 		Logger::log("Response buffer empty", ERROR);
-		return false;
+		return true;
 	}
 	Response rep = _reps[0];
 	std::string content = rep.build();

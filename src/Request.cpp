@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/26 13:12:50 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/29 14:44:53 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/29 15:34:03 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,7 @@ Request::Request(const Request& copy)
 Request::Request(const std::string& req)
 {
 	request = req;
+	std::cout << std::endl << request << std::endl;
 	parseRequest();
 }
 

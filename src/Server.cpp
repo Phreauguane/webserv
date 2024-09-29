@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:19:33 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/29 15:22:39 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/29 16:25:50 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -173,7 +173,7 @@ Location *Server::_getLocation(const std::string& path)
 	return _root_loc->getSubLoc(path);
 }
 
-Response& Server::executeRequest(const Request& req)
+Response Server::executeRequest(const Request& req)
 {
 	if (req.method == "GET")
 		return _get(req);
@@ -186,26 +186,40 @@ Response& Server::executeRequest(const Request& req)
 
 req_type Server::_getType(const Request& req)
 {
-	(void)req;
-	return T_DIR;
+    struct stat path_stat;
+    if (stat(req.path.c_str(), &path_stat) != 0)
+		throw std::runtime_error("Invalid resource : " + req.path);
+    if (S_ISDIR(path_stat.st_mode))
+		return T_DIR;
+	return T_FILE;
 }
 
-Response& Server::_get(const Request& req)
+Response Server::_get(const Request& req)
 {
-	// Location *loc = _getLocation(req.path);
+	Location *loc = _getLocation(req.path);
+	if (_getType(req) == T_FILE)
+		return _readFile(req);
 	(void)req;
 	Response rep;
 	return rep;
 }
 
-Response& Server::_post(const Request& req)
+Response Server::_readFile(const Request& req)
+{
+	std::string content = Utils::readFile(req.path);
+	Response rep;
+	rep.body = content;
+	// TO DO
+}
+
+Response Server::_post(const Request& req)
 {
 	(void)req;
 	Response rep;
 	return rep;
 }
 
-Response& Server::_delete(const Request& req)
+Response Server::_delete(const Request& req)
 {
 	(void)req;
 	Response rep;

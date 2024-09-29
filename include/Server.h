@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:18:44 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/29 15:21:17 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/29 16:23:11 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,14 +34,15 @@ public:
 	void setup();
 	int getSockFd() const;
 	std::string getIp();
-	Response& executeRequest(const Request&);
+	Response executeRequest(const Request&);
 	size_t getMaxBodySize();
 	void printDetails() const;
 	~Server();
 private:
-	Response& _get(const Request&);
-	Response& _post(const Request&);
-	Response& _delete(const Request&);
+	Response _get(const Request&);
+	Response _post(const Request&);
+	Response _delete(const Request&);
+	Response _readFile(const Request&);
 	req_type _getType(const Request&);
 	void _parseSource(const std::string&);
 	void _setupServAddr();

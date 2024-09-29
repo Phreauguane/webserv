@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/27 15:52:52 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/29 14:49:56 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/29 15:36:49 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,7 @@ public:
 	std::string build();
 	~Response();
 public:
+	bool ready;
 	std::string http;
 	int status;
 	std::string phrase;

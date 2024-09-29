@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/27 15:56:35 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/29 14:50:12 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/29 15:37:07 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,9 @@ Response &Response::operator=(const Response& copy)
 
 std::string Response::build()
 {
+	if (!ready)
+		return "";
+
 	std::stringstream header;
 	header << http << " " << status << " " << phrase << "\r\n";
 	header << "Content-Length: " << body.size() << "\r\n";
