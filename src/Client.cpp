@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/25 16:20:16 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/27 15:52:05 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/29 15:03:48 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,16 +63,24 @@ bool Client::readRequest()
 	if (_req)
 		delete _req;
 	_req = new Request(_request);
-	_response = _server->buildResponse(*_req);
+	_reps.push_back(_server->executeRequest(*_req));
 	return true;
 }
 
-bool Client::sendMsg(const std::string& msg)
+bool Client::sendResponse()
 {
-	const char *message = msg.c_str();
-	ssize_t total_len = msg.size();
-	ssize_t sent = send(_fd, message, total_len, MSG_NOSIGNAL);
-	return sent == total_len;
+	if (_reps.size() == 0)
+	{
+		Logger::log("Response buffer empty", ERROR);
+		return false;
+	}
+	Response rep = _reps[0];
+	std::string content = rep.build();
+	ssize_t len = content.size();
+	ssize_t sent = send(_fd, content.c_str(), len, MSG_NOSIGNAL);
+	if (sent == len)
+		_reps.erase(_reps.begin());
+	return sent == len;
 }
 
 std::string Client::getRequest()

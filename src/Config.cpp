@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Config.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/11 23:10:32 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/27 14:45:02 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/29 15:22:02 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -110,7 +110,7 @@ void Config::_handleRequests(size_t nfds)
 				}
 				else if (_epollevents[i].events & EPOLLOUT)
 				{
-					if (_clients[j]->sendMsg("miaou"))
+					if (_clients[j]->sendResponse())
 						Logger::log("Sent response to client", INFO);
 					else
 					{

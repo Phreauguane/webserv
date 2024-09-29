@@ -11,7 +11,8 @@ SRC		=	main.cpp			\
 			src/Utils.cpp		\
 			src/Logger.cpp		\
 			src/Client.cpp		\
-			src/Request.cpp
+			src/Request.cpp		\
+			src/Response.cpp
 			
 
 all		:

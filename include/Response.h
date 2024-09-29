@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Response.h                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/27 15:52:52 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/27 15:56:19 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/29 14:49:56 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,7 @@ public:
 	Response(const Response&);
 	Response &operator=(const Response&);
 	std::string build();
+	~Response();
 public:
 	std::string http;
 	int status;

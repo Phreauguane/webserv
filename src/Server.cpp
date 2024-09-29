@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:19:33 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/27 15:52:14 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/29 15:22:39 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -173,16 +173,43 @@ Location *Server::_getLocation(const std::string& path)
 	return _root_loc->getSubLoc(path);
 }
 
-std::string Server::buildResponse(const Request& request)
+Response& Server::executeRequest(const Request& req)
 {
-	std::string response = "HTTP/1.1 200 OK\r\n";
-	std::stringstream length;
-	length << "Content-Length: " << msg.length();
-	response += length.str() + "\r\n";
-	response += "Content-Type: text/plain\r\n";
-	response += "\r\n";  // Blank line between headers and body
-	response += msg;
-	return _getLocation(request.path)->getName();
+	if (req.method == "GET")
+		return _get(req);
+	if (req.method == "POST")
+		return _post(req);
+	if (req.method == "DELETE")
+		return _delete(req);
+	throw std::runtime_error("Unkown method : " + req.method);
+}
+
+req_type Server::_getType(const Request& req)
+{
+	(void)req;
+	return T_DIR;
+}
+
+Response& Server::_get(const Request& req)
+{
+	// Location *loc = _getLocation(req.path);
+	(void)req;
+	Response rep;
+	return rep;
+}
+
+Response& Server::_post(const Request& req)
+{
+	(void)req;
+	Response rep;
+	return rep;
+}
+
+Response& Server::_delete(const Request& req)
+{
+	(void)req;
+	Response rep;
+	return rep;
 }
 
 size_t Server::getMaxBodySize()

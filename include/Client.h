@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.h                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/25 16:17:08 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/27 15:49:34 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/29 15:01:13 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 
 #include "webserv.h"
 #include "Server.h"
+#include "Response.h"
 #include "Request.h"
 
 class Client
@@ -25,14 +26,14 @@ public:
 	Client& operator=(const Client&);
 	int getFd();
 	std::string getRequest();
-	bool sendMsg(const std::string&);
+	bool sendResponse();
 	bool readRequest();
 	~Client();
 private:
 	Server *_server;
 	size_t _size;
 	std::string _request;
-	std::string _response;
+	std::vector<Response> _reps;
 	Request *_req;
 	int _fd;
 };

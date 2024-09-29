@@ -3,16 +3,24 @@
 /*                                                        :::      ::::::::   */
 /*   Request.h                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/26 13:02:10 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/27 14:17:54 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/29 14:44:51 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 
 #include "webserv.h"
+
+enum methods
+{
+	GET,
+	POST,
+	DELETE,
+	UNKNOWN
+};
 
 class Request
 {
