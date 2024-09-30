@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.h                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 16:23:29 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/29 14:31:18 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/30 12:21:05 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,5 +37,6 @@ public:
 	std::vector<std::string> _allowed_methods;
 	std::vector<std::string> _cgi_paths;
 	std::vector<std::string> _cgi_exts;
+	Location *_parent;
 	std::map<std::string, Location*> _locations;
 };

@@ -6,7 +6,7 @@
 /*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/15 00:05:31 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/27 15:49:09 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/30 12:22:23 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -182,6 +182,7 @@ void Location::addMethod(const std::string& method)
 void Location::addChildren(const std::string& source)
 {
 	Location* loc = new Location(source, _env);
+	loc->_parent = this;
 	_locations[loc->_name] = loc;
 }
 
@@ -230,6 +231,7 @@ Location& Location::operator=(const Location& copy)
 	for(std::map<std::string, Location*>::const_iterator it = copy._locations.begin(); it != copy._locations.end(); ++it)
 	{
 		Location* loc = new Location(*(it->second));
+		loc->_parent = this;
 		_locations[loc->_name] = loc;
 	}
 	return *this;

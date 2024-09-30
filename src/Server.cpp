@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:19:33 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/29 16:25:50 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/30 12:57:23 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -184,32 +184,87 @@ Response Server::executeRequest(const Request& req)
 	throw std::runtime_error("Unkown method : " + req.method);
 }
 
-req_type Server::_getType(const Request& req)
+req_type Server::_getType(const std::string& path)
 {
     struct stat path_stat;
-    if (stat(req.path.c_str(), &path_stat) != 0)
-		throw std::runtime_error("Invalid resource : " + req.path);
+    if (stat(path.c_str(), &path_stat) != 0)
+		throw std::runtime_error("Invalid resource : " + path);
     if (S_ISDIR(path_stat.st_mode))
 		return T_DIR;
 	return T_FILE;
 }
 
+std::string Server::_findResourcePath(const Request &req, Location *loc)
+{
+	Location *l = loc;
+	std::string root = l->_root;
+	while (root.size() == 0 && l)
+	{
+		l = l->_parent;
+		root = l->_root;
+	}
+	std::string path = root + req.path;
+	std::vector<std::string> p = Utils::splitString(path, "/");
+	if (p.size() == 0)
+		return "/";
+	path = p[0];
+	for (size_t i = 1; i < p.size(); i++)
+	{
+		path += "/" + p[i];
+	}
+	return path;
+}
+
 Response Server::_get(const Request& req)
 {
 	Location *loc = _getLocation(req.path);
-	if (_getType(req) == T_FILE)
-		return _readFile(req);
-	(void)req;
+	std::string path = _findResourcePath(req, loc);
+	try
+	{
+		if (_getType(path) == T_FILE)
+			return _readFile(req, path);
+		else if (loc->_index.size() > 0)
+			return _readFile(req, path + "/" + loc->_index);
+		else if (loc->_auto_index)
+			return _autoIndex(path, loc);
+	}
+	catch(const std::runtime_error& e)
+	{
+		Logger::log(e.what(), ERROR);
+	}
 	Response rep;
 	return rep;
 }
 
-Response Server::_readFile(const Request& req)
+Response Server::_autoIndex(const std::string& path, Location *loc)
 {
-	std::string content = Utils::readFile(req.path);
+	
+}
+
+Response Server::_readFile(const Request& req, const std::string& path)
+{
+	(void)req;
+	std::string content = Utils::readFile(path);
 	Response rep;
 	rep.body = content;
-	// TO DO
+	size_t pos = path.find_last_of(".");
+	if (pos == std::string::npos)
+		rep.attributes["Content-Type"] = "text/html";
+	else
+	{
+		std::string ext = &(path[pos]);
+		if (ext == ".html")
+			rep.attributes["Content-Type"] = "text/html";
+		else if (ext == ".css")
+			rep.attributes["Content-Type"] = "text/css";
+		else
+			rep.attributes["Content-Type"] = ext;
+	}
+	rep.http = "HTTP/1.1";
+	rep.status = 200;
+	rep.phrase = "OK";
+	rep.ready = true;
+	return rep;
 }
 
 Response Server::_post(const Request& req)

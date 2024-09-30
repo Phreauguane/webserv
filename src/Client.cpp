@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/25 16:20:16 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/29 15:35:39 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/30 12:36:57 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,6 +76,7 @@ bool Client::sendResponse()
 	}
 	Response rep = _reps[0];
 	std::string content = rep.build();
+	std::cout << content << std::endl;
 	ssize_t len = content.size();
 	ssize_t sent = send(_fd, content.c_str(), len, MSG_NOSIGNAL);
 	if (sent == len)

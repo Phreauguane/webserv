@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.h                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:18:44 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/29 16:23:11 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/09/30 12:56:33 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,8 +42,10 @@ private:
 	Response _get(const Request&);
 	Response _post(const Request&);
 	Response _delete(const Request&);
-	Response _readFile(const Request&);
-	req_type _getType(const Request&);
+	Response _readFile(const Request&, const std::string&);
+	Response _autoIndex(const std::string&, Location*);
+	req_type _getType(const std::string&);
+	std::string _findResourcePath(const Request&, Location*);
 	void _parseSource(const std::string&);
 	void _setupServAddr();
 	Location *_getLocation(const std::string&);
