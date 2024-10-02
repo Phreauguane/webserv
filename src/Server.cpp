@@ -232,11 +232,11 @@ Response Server::_get(const Request& req)
 		{
 			std::string idx_path = path + "/" + loc->_index;
 			if (_getType(idx_path) != T_FILE)
-				return (loc->_auto_index ? _autoIndex(path, loc) : _errorPage(403));
+				return (loc->_auto_index ? _autoIndex(path) : _errorPage(403));
 			return _readFile(req, idx_path);
 		}
 		else if (loc->_auto_index)
-			return _autoIndex(path, loc);
+			return _autoIndex(path);
 	}
 	catch(const std::runtime_error& e)
 	{
@@ -244,6 +244,48 @@ Response Server::_get(const Request& req)
 	}
 	Response rep;
 	return rep;
+}
+
+
+std::string Server::_listDirectory(const std::string &path)
+{
+    DIR *dir;
+    struct dirent *ent;
+    std::ostringstream html;
+    
+    dir = opendir(path.c_str());
+    if (dir == NULL)
+	{
+        return "";  // If directory doesn't exist, return a 404 error
+    }
+    
+    html << "<html><head><title>Index of " << path << "</title></head><body>";
+    html << "<h1>Index of " << path << "</h1>";
+    html << "<ul>";
+    
+    while ((ent = readdir(dir)) != NULL)
+	{
+        std::string name(ent->d_name);
+        
+        // Ignore "." and ".."
+        if (name == "." || name == "..") {
+            continue;
+        }
+
+        // Add a trailing slash if it's a directory
+        std::string display_name = name;
+        if (ent->d_type == DT_DIR) {
+            display_name += "/";
+        }
+        
+        html << "<li><a href=\"" << name << "\">" << display_name << "</a></li>";
+    }
+    
+    html << "</ul>";
+    html << "</body></html>";
+    
+    closedir(dir);
+    return html.str();
 }
 
 Response Server::_errorPage(unsigned int code)
@@ -268,13 +310,15 @@ Response Server::_errorPage(unsigned int code)
 	return rep;
 }
 
-Response Server::_autoIndex(const std::string& path, Location *loc)
+Response Server::_autoIndex(const std::string& path)
 {
-	Logger::log("auto index called", DEBUG);
-	(void)path;
-	(void)loc;
 	Response rep;
-	// TO DO
+	rep.http = "HTTP/1.1";
+	rep.status = 200;
+	rep.phrase = "OK";
+	rep.body = _listDirectory(path);
+	rep.attributes["Content-Type"] = "text/html";
+	rep.ready = true;
 	return rep;
 }
 
