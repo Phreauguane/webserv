@@ -136,12 +136,12 @@ void Server::setup()
 		throw std::runtime_error("Failed to create socket");
 	Logger::log("Socket created", DEBUG);
 	
-	_setupServAddr();
-	
 	int option_value = 1;
     if (setsockopt(_sockfd, SOL_SOCKET, SO_REUSEADDR, 
 		&option_value, sizeof(int)) < 0)
 		throw std::runtime_error("Failed to set socket options");
+	
+	_setupServAddr();
 	
 	std::ostringstream oss;
 	oss << "Binding socket at " << _ip_addr << ":" << _port << ".";

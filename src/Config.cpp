@@ -85,7 +85,7 @@ void Config::_checkForConnections(size_t nfds)
 			if (_epollevents[i].data.fd == _servers[j]->getSockFd())
 			{
 				Client *cli = new Client(_servers[j]);
-				this->_addFd(cli->getFd(), EPOLLIN | EPOLLOUT | EPOLLET);
+				this->_addFd(cli->getFd(), EPOLLIN | EPOLLET);
 				_clients.push_back(cli);
 			}
 		}

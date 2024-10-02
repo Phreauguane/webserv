@@ -204,11 +204,8 @@ Location *Location::getSubLoc(const std::string &path)
 		subpath = "";
 	}
 	
-	for (std::map<std::string, Location*>::const_iterator it = _locations.begin(); it != _locations.end(); ++it)
-	{
-		if (names[0] == it->second->getName())
-			return it->second->getSubLoc(subpath);
-	}
+	if (_locations[names[0]] != NULL)
+		return _locations[names[0]]->getSubLoc(subpath);
 	return this;
 }
 
