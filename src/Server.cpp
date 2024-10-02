@@ -188,7 +188,7 @@ req_type Server::_getType(const std::string& path)
 {
     struct stat path_stat;
     if (stat(path.c_str(), &path_stat) != 0)
-		throw std::runtime_error("Invalid resource : " + path);
+		return T_NFD;
     if (S_ISDIR(path_stat.st_mode))
 		return T_DIR;
 	return T_FILE;
@@ -221,10 +221,20 @@ Response Server::_get(const Request& req)
 	std::string path = _findResourcePath(req, loc);
 	try
 	{
-		if (_getType(path) == T_FILE)
+		req_type type = _getType(path);
+		if (type == T_NFD)
+			return _errorPage(404);
+		else if (type == T_FILE)
 			return _readFile(req, path);
+		else if (req.path[req.path.size() - 1] != '/')
+			return _errorPage(301);
 		else if (loc->_index.size() > 0)
-			return _readFile(req, path + "/" + loc->_index);
+		{
+			std::string idx_path = path + "/" + loc->_index;
+			if (_getType(idx_path) != T_FILE)
+				return (loc->_auto_index ? _autoIndex(path, loc) : _errorPage(403));
+			return _readFile(req, idx_path);
+		}
 		else if (loc->_auto_index)
 			return _autoIndex(path, loc);
 	}
@@ -236,13 +246,41 @@ Response Server::_get(const Request& req)
 	return rep;
 }
 
+Response Server::_errorPage(unsigned int code)
+{
+	Response rep;
+
+	req_type type = _getType(_error_pages[code]);
+	if (type == T_FILE)
+		rep.body = Utils::readFile(_error_pages[code]);
+	else
+	{
+		std::stringstream ss;
+		ss << "Error " << code;
+		rep.body = ss.str();
+	}
+	rep.attributes["Content-Type"] = "text/html";
+	rep.http = "HTTP/1.1";
+	rep.status = code;
+	rep.phrase = "ERROR";
+	rep.ready = true;
+
+	return rep;
+}
+
 Response Server::_autoIndex(const std::string& path, Location *loc)
 {
-	
+	Logger::log("auto index called", DEBUG);
+	(void)path;
+	(void)loc;
+	Response rep;
+	// TO DO
+	return rep;
 }
 
 Response Server::_readFile(const Request& req, const std::string& path)
 {
+	Logger::log("Reading file", DEBUG);
 	(void)req;
 	std::string content = Utils::readFile(path);
 	Response rep;

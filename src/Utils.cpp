@@ -75,6 +75,8 @@ std::string Utils::readBrackets(const std::string& source, size_t start)
 
 std::string Utils::removeWSpaces(const std::string& line)
 {
+	if (line.size() == 0)
+		return line;
 	std::string output;
 	size_t i = 0;
 	while (i < line.size() && std::isspace(line[i]))

@@ -26,6 +26,7 @@ Request::Request(const Request& copy)
 Request::Request(const std::string& req)
 {
 	request = req;
+	Logger::log("Received request", DEBUG);
 	std::cout << std::endl << request << std::endl;
 	parseRequest();
 }

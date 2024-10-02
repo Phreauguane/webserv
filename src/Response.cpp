@@ -28,13 +28,14 @@ Response &Response::operator=(const Response& copy)
 	phrase = copy.phrase;
 	attributes = copy.attributes;
 	body = copy.body;
+	ready = copy.ready;
 	return *this;
 }
 
 std::string Response::build()
 {
 	if (!ready)
-		return "";
+		return "Not ready :)";
 
 	std::stringstream header;
 	header << http << " " << status << " " << phrase << "\r\n";

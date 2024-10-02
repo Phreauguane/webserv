@@ -20,7 +20,8 @@
 enum req_type
 {
 	T_FILE,
-	T_DIR
+	T_DIR,
+	T_NFD
 };
 
 class Server
@@ -44,6 +45,7 @@ private:
 	Response _delete(const Request&);
 	Response _readFile(const Request&, const std::string&);
 	Response _autoIndex(const std::string&, Location*);
+	Response _errorPage(unsigned int);
 	req_type _getType(const std::string&);
 	std::string _findResourcePath(const Request&, Location*);
 	void _parseSource(const std::string&);
