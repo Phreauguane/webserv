@@ -51,6 +51,7 @@ private:
 	std::string _findResourcePath(const Request&, Location*);
 	void _parseSource(const std::string&);
 	void _setupServAddr();
+	void _loadTypes();
 	Location *_getLocation(const std::string&);
 private:
 	char **_env;
@@ -61,5 +62,6 @@ private:
 	int _port, _sockfd;
 	Location *_root_loc;
 	std::map<unsigned int, std::string> _error_pages;
+	std::map<std::string, std::string> _types;
 	unsigned int _max_body_size;
 };
