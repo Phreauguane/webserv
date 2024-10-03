@@ -298,7 +298,8 @@ Response Server::_errorPage(unsigned int code)
 	else
 	{
 		std::stringstream ss;
-		ss << "Error " << code;
+		ss << "<html><head><title>Error " << code << "</title></head>";
+		ss << "<body><h1>Error " << code << "</h1></body></html>";
 		rep.body = ss.str();
 	}
 	rep.attributes["Content-Type"] = "text/html";

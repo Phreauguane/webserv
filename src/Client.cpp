@@ -63,7 +63,17 @@ bool Client::readRequest()
 	if (_req)
 		delete _req;
 	_req = new Request(_request);
-	_reps.push_back(_server->executeRequest(*_req));
+
+	try
+	{
+		_reps.push_back(_server->executeRequest(*_req));
+	}
+	catch(const std::runtime_error& e)
+	{
+		Logger::log(e.what(), ERROR);
+		Logger::log("Failed to execute request on server " + _server->getIp(), ERROR);
+	}
+	
 	return true;
 }
 
