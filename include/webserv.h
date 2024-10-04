@@ -36,6 +36,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <algorithm>
 
 #define MAX_EVENTS 512
 

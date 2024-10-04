@@ -27,4 +27,10 @@ namespace Utils
 	std::vector<std::string> splitString(const std::string&, const std::string&);
 	int inet_pton_v4(const std::string&, in_addr_t*);
 	void verify_args(const std::vector<std::string>&, size_t, size_t);
+	template <typename T>
+	bool searchFor(const std::vector<T>& vec, const T& e)
+	{
+		return std::find(vec.begin(), vec.end(), e) != vec.end();
+	}
+
 }
