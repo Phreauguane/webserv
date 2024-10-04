@@ -93,6 +93,7 @@ void Location::parseLine(const std::vector<std::string>& strs)
 	else if (strs[0] == "allow_methods")
 	{
 		Utils::verify_args(strs, 2, 999);
+		_allowed_methods.clear();
 		for (size_t i = 1; i < strs.size(); i++)
 		{
 			_allowed_methods.push_back(strs[i]);
@@ -183,6 +184,7 @@ void Location::addChildren(const std::string& source)
 {
 	Location* loc = new Location(source, _env);
 	loc->_parent = this;
+	loc->_allowed_methods = _allowed_methods;
 	_locations[loc->_name] = loc;
 }
 

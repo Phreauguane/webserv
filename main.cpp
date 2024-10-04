@@ -14,20 +14,35 @@
 #include "Config.h"
 
 bool shouldClose = false;
+bool shouldRestart = true;
 
 void sigHandler(int signum)
 {
 	if (signum == SIGINT)
 	{
 		std::cout << "\b\b";
-		Logger::log("Closing server...", INFO);
+		Logger::log("----------------", INFO);
+		Logger::log(" Closing server ", INFO);
+		Logger::log("----------------", INFO);
 		shouldClose = true;
+		shouldRestart = false;
+	}
+	if (signum == SIGTSTP)
+	{
+		std::cout << "\b\b";
+		Logger::log("-------------------", SUCCESS);
+		Logger::log(" Restarting server ", SUCCESS);
+		Logger::log("-------------------", SUCCESS);
+		shouldClose = true;
+		shouldRestart = true;
 	}
 }
 
 int	main(int ac, char **av, char **env)
 {
 	signal(SIGINT, sigHandler);
+	signal(SIGTSTP, sigHandler);
+	Logger::setMinLogLevel(LOG_LEVEL);
 	std::string config_file = "default.conf";
 	if (ac == 2)
 		config_file = av[1];
@@ -37,16 +52,21 @@ int	main(int ac, char **av, char **env)
 		return -1;
 	}
 	
-	try
+	while (shouldRestart)
 	{
-		Config config(env);
-		config.load(config_file);
-		config.setup();
-		config.run(&shouldClose);
-	}
-	catch (const std::runtime_error& e)
-	{
-		Logger::log(e.what(), ERROR);
+		shouldClose = false;
+		try
+		{
+			Config config(env);
+			config.load(config_file);
+			config.setup();
+			config.run(&shouldClose);
+		}
+		catch (const std::runtime_error& e)
+		{
+			Logger::log(e.what(), ERROR);
+			shouldRestart = false;
+		}
 	}
 	Logger::saveLog();
 	return 0;
