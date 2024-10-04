@@ -39,4 +39,8 @@
 
 #define MAX_EVENTS 512
 
+#ifndef LOG_LEVEL
+# define LOG_LEVEL INFO
+#endif
+
 #include "Logger.h"

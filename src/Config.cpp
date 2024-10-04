@@ -56,7 +56,7 @@ void Config::setup()
 {
 	_setupServers();
 
-	Logger::log("Server ready", SUCCESS);
+	Logger::log("All servers ready", DEBUG);
 }
 
 void Config::run(bool *shouldClose)

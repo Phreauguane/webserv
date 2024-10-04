@@ -268,7 +268,7 @@ void Server::setup()
 	if (fcntl(_sockfd, F_SETFL, O_NONBLOCK) < 0)
 		throw std::runtime_error("Failed to set socket in non-blocking mode");
 	_ready = true;
-	Logger::log("Server " + getIp() + " OK", DEBUG);
+	Logger::log("Server ready : " + getIp(), SUCCESS);
 }
 
 std::string Server::getIp()

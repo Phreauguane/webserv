@@ -24,12 +24,14 @@ namespace Logger
 		if (level < min_lvl)
 			return ;
 		std::string bold_clr, clr, lvl;
+		std::string msg = message;
 		switch (level)
 		{
 		case TEXT:
-			bold_clr = DEF;
-			clr = DEF;
-			lvl = "TEXT";
+			bold_clr = BOLD_WHITE;
+			clr = WHITE;
+			lvl = "DEBUG";
+			msg = "\n" + message;
 			break;
 		case DEBUG:
 			bold_clr = BOLD_BLUE;
@@ -62,8 +64,8 @@ namespace Logger
 		std::stringstream consoleOutput, logFileOutput;
 		std::string timestr = Utils::getCurrentTime();
 		
-		consoleOutput << DEF << "[" << timestr << "] " << bold_clr << " [" << lvl << "]" << clr << " - " << message << DEF << std::endl;
-		logFileOutput << "[" << timestr << "]  [" << lvl << "]" << " - " << message << std::endl;
+		consoleOutput << DEF << "[" << timestr << "] " << bold_clr << " [" << lvl << "]" << clr << " - " << msg << DEF << std::endl;
+		logFileOutput << "[" << timestr << "]  [" << lvl << "]" << " - " << msg << std::endl;
 		std::cout << consoleOutput.str();
 		if (log_file.is_open())
 			log_file.write(logFileOutput.str().c_str(), logFileOutput.str().size());
