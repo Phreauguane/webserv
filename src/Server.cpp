@@ -330,6 +330,11 @@ std::string Server::_findResourcePath(const Request &req, Location *loc)
 Response Server::_get(const Request& req)
 {
 	Location *loc = _getLocation(req.path);
+	// verify method
+	std::string method = "GET";
+	if (Utils::searchFor(loc->_allowed_methods, method))
+		Logger::log("MIAOU", SUCCESS);
+	// ---
 	std::string path = _findResourcePath(req, loc);
 	try
 	{
