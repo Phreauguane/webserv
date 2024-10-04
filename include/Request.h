@@ -41,6 +41,7 @@ public:
 	std::string host;
 	std::string user_agent;
 	std::vector<std::string> accept;
+	std::map<std::string, std::string> attributes;
 	bool keep_alive;
 	std::string body;
 };

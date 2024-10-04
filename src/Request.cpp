@@ -53,12 +53,12 @@ void Request::parseRequest()
 			std::vector<std::string> strs = Utils::splitString(lines[i], ": ");
 			if (strs[0] == "host")
 				host = strs[1];
-			if (strs[0] == "User-Agent")
-				user_agent = strs[1];
-			if (strs[0] == "Accept")
+			else if (strs[0] == "Accept")
 				accept = Utils::splitString(strs[1], ",");
-			if (strs[0] == "Connection")
+			else if (strs[0] == "Connection")
 				keep_alive = (strs[1] == "keep-alive");
+			else
+				attributes[strs[0]] = strs[1];
 		}
 	}
 }

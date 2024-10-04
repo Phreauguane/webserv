@@ -99,7 +99,7 @@ void Location::parseLine(const std::vector<std::string>& strs)
 			_allowed_methods.push_back(strs[i]);
 		}
 	}
-    else if (strs[0] == "cgi_path") 
+    else if (strs[0] == "cgi_path")
 	{
 		Utils::verify_args(strs, 2, 999);
 		for (size_t i = 1; i < strs.size(); i++)
