@@ -7,8 +7,8 @@
 
 body {
     font-family: 'Arial', sans-serif;
-    background-color: #f0f0f5;
-    color: #333;
+    background-color: #1f1f1f;
+    color: #ececec;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -19,50 +19,15 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #1b2838;
+    background-color: #2e5b54;
     color: white;
     padding: 15px 40px;
 }
 
-.left-header {
-    display: flex;
-    align-items: center;
-}
-
 .logo h1 {
-    margin-left: 20px;
     font-size: 24px;
 }
 
-/* Hamburger menu for small screens */
-.menu-toggle {
-    background: none;
-    color: white;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-}
-
-.nav-menu ul {
-    list-style: none;
-    display: flex;
-    margin: 0;
-}
-
-.nav-menu ul li {
-    margin: 0 20px;
-}
-
-.nav-menu ul li a {
-    color: white;
-    text-decoration: none;
-}
-
-.hidden {
-    display: none;
-}
-
-/* Profile menu styling */
 .profile-menu {
     position: relative;
 }
@@ -74,115 +39,119 @@ header {
     cursor: pointer;
 }
 
-.profile-dropdown {
-    position: absolute;
-    right: 0;
-    top: 50px;
-    background-color: white;
-    color: #333;
-    width: 150px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    display: none;
+.main-menu button {
+    width: 40px;
+    height: 40px;
+    font-size: 30px;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
 }
 
-.profile-dropdown ul {
+/* Dropdown menu styling */
+.profile-dropdown,
+.menu-dropdown {
+    position: fixed;
+    background-color: #3a3a3a;
+    color: #fff;
+    width: 150px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.profile-dropdown {
+    right: 15px; /* Adjust to fit near the profile icon */
+    top: 50px;
+}
+
+.menu-dropdown {
+    left: 15px; /* Adjust to fit near the menu icon */
+    top: 50px;
+}
+
+.profile-dropdown ul,
+.menu-dropdown ul {
     list-style: none;
     padding: 10px;
 }
 
-.profile-dropdown ul li {
+.profile-dropdown ul li,
+.menu-dropdown ul li {
     padding: 10px;
     cursor: pointer;
 }
 
-.profile-dropdown ul li:hover {
-    background-color: #f4f4f4;
+.profile-dropdown ul li:hover,
+.menu-dropdown ul li:hover {
+    background-color: #575757;
 }
 
-/* Main Content Section */
-main.content {
-    flex: 1;
-    padding: 20px;
-    margin: 0 auto;
-    width: 100%;
-    max-width: 1200px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+.menu-dropdown.visible,
+.profile-dropdown.visible {
+    display: block;
+    opacity: 1;
 }
 
-/* Account Summary styling */
-.account-summary {
-    width: 100%;
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-.summary-card {
-    background-color: #ffffff;
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 600px;
-    margin: auto;
-}
-
-.summary-card h2 {
-    margin-bottom: 10px;
-    font-size: 28px;
-    color: #1b2838;
-}
-
-.summary-card p {
-    font-size: 18px;
-    color: #4a4a4a;
-}
-
-/* Dashboard styling */
-.dashboard {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    max-width: 800px;
-}
-
-.dashboard-card {
-    background-color: #ffffff;
+/* Central Account Block */
+.account-block {
+    background-color: #2b2b2b;
     padding: 20px;
     border-radius: 15px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 400px;
+    margin: 20px auto;
     text-align: center;
 }
 
-.dashboard-card h3 {
+.balance-header {
+    background-color: #3d7040;
+    padding: 10px 0;
+    border-radius: 10px;
     margin-bottom: 20px;
-    font-size: 24px;
-    color: #1b2838;
 }
 
-/* Buttons for account actions */
-.dashboard-card.actions button {
-    background-color: #3498db;
+.balance-header h2 {
     color: white;
-    padding: 10px;
-    margin: 10px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    width: 150px;
+    font-size: 24px;
 }
 
-.dashboard-card.actions button:hover {
-    background-color: #2980b9;
+/* Transaction list */
+.transaction-list {
+    background-color: #333;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.transaction {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #444;
+}
+
+.transaction:last-child {
+    border-bottom: none;
+}
+
+.transaction span {
+    font-size: 16px;
+}
+
+.amount {
+    font-weight: bold;
+}
+
+.negative {
+    color: #ff5f5f;
 }
 
 /* Footer styling */
 footer {
-    background-color: #1b2838;
+    background-color: #2e5b54;
     color: white;
     text-align: center;
     padding: 15px 0;
@@ -200,12 +169,7 @@ footer {
         font-size: 20px;
     }
 
-    .nav-menu ul {
-        flex-direction: column;
-        text-align: center;
-    }
-
-    .nav-menu ul li {
-        margin: 10px 0;
+    .account-block {
+        width: 90%;
     }
 }

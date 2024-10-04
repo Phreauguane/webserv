@@ -3,34 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bank Account Dashboard</title>
+    <title>Homepage</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <!-- Header Section -->
-    <header>
-        <div class="left-header">
-            <button class="menu-toggle" id="menu-toggle">☰</button>
-            <div class="logo">
-                <h1>YourBank</h1>
+    <header class="header">
+        <div class="main-menu">
+            <button id="menu-toggle">☰</button>
+            <div id="menu-dropdown" class="menu-dropdown hidden">
+                <ul>
+                    <li><a href="#">Home</a></li>
+                    <li><a href="#">Accounts</a></li>
+                    <li><a href="#">Transactions</a></li>
+                    <li><a href="#">Support</a></li>
+                </ul>
             </div>
         </div>
-        
-        <nav id="nav-menu" class="nav-menu hidden">
-            <ul>
-                <li><a href="#">Home</a></li>
-                <li><a href="#">Accounts</a></li>
-                <li><a href="#">Transactions</a></li>
-                <li><a href="#">Support</a></li>
-            </ul>
-        </nav>
+
+        <div class="center-header">
+            <div class="logo">
+                <h1>MiaouBank</h1>
+            </div>
+        </div>
 
         <div class="profile-menu">
             <img src="https://via.placeholder.com/40" alt="Profile" id="profile-icon">
             <div id="profile-dropdown" class="profile-dropdown hidden">
                 <ul>
+                    <li><a href="#">Profile Info</a></li>
                     <li><a href="#">Settings</a></li>
-                    <li><a href="#">Account Info</a></li>
                     <li><a href="#">Logout</a></li>
                 </ul>
             </div>
@@ -39,39 +41,29 @@
 
     <!-- Main Content Section -->
     <main class="content">
-        <!-- Account Summary Section -->
-        <section class="account-summary">
-            <div class="summary-card">
-                <h2>Account Summary</h2>
-                <p>Current Balance: $5,430.75</p>
-                <p>Savings Balance: $12,980.00</p>
+        <div class="account-block">
+            <div class="balance-header">
+                <h2>Balance: $69</h2>
             </div>
-        </section>
-
-        <!-- Dashboard Section -->
-        <section class="dashboard">
-            <div class="dashboard-card">
-                <h3>Recent Transactions</h3>
-                <ul>
-                    <li>Groceries - $50.00</li>
-                    <li>Gas Station - $40.00</li>
-                    <li>Salary - $3,000.00</li>
-                    <li>Subscription - $12.99</li>
-                </ul>
+            <div class="transaction-list">
+                <div class="transaction">
+                    <span>04/11</span>
+                    <span>Hotel</span>
+                    <span class="amount negative">$-60</span>
+                </div>
+                <div class="transaction">
+                    <span>01/11</span>
+                    <span>Groceries</span>
+                    <span class="amount negative">$-150</span>
+                </div>
+                <div class="transaction">
+                    <span>30/10</span>
+                    <span>Coffee</span>
+                    <span class="amount negative">$-5</span>
+                </div>
             </div>
-            <div class="dashboard-card actions">
-                <h3>Account Actions</h3>
-                <button>Transfer Funds</button>
-                <button>View Statements</button>
-                <button>Pay Bills</button>
-            </div>
-        </section>
+        </div>
     </main>
-
-    <!-- Footer Section -->
-    <footer>
-        <p>&copy; 2024 YourBank. All Rights Reserved.</p>
-    </footer>
 
     <script src="scripts.js"></script>
 </body>
