@@ -32,10 +32,8 @@ Response &Response::operator=(const Response& copy)
 	return *this;
 }
 
-std::string Response::build()
+std::string Response::build_header()
 {
-	if (!ready)
-		return "Not ready :)";
 
 	std::stringstream header;
 	header << http << " " << status << " " << phrase << "\r\n";
@@ -49,8 +47,15 @@ std::string Response::build()
 	header << "Content-Length: " << body.size() << "\r\n";
 	header << "\r\n";  // Blank line between headers and body
 	
+	return header.str();
+}
 
-	return header.str() + body;
+std::string Response::build()
+{
+	if (!ready)
+		return "Not ready :)";
+
+	return build_header() + body;
 }
 
 Response::~Response()

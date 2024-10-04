@@ -21,6 +21,7 @@ public:
 	Response(const Response&);
 	Response &operator=(const Response&);
 	std::string build();
+	std::string build_header();
 	~Response();
 public:
 	bool ready;
