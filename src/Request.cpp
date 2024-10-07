@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42perpignan.fr    +#+  +:+       +#+        */
+/*   By: rmidou <rmidou@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/26 13:12:50 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/29 15:34:03 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/10/07 16:00:50 by rmidou           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@ Request::Request(const std::string& req)
 
 void Request::parseRequest()
 {
-	std::vector<std::string> head_body = Utils::splitString(request, "\n\n");
+	std::vector<std::string> head_body = Utils::splitString(request, "\r\n\r\n");
 	if (head_body.size() > 1)
 		body = head_body[1];
 	std::vector<std::string> lines = Utils::splitString(head_body[0], "\n");

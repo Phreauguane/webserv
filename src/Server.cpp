@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: rmidou <rmidou@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:19:33 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/30 12:57:23 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/10/07 15:49:06 by rmidou           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -470,9 +470,23 @@ Response Server::_readFile(const Request& req, const std::string& path)
 
 Response Server::_post(const Request& req)
 {
-	(void)req;
-	Response rep;
-	return rep;
+	std::cout << "MIAOUUUUUUUU" << req.body << "MIAOUUUUUUUU" << std::endl;
+	std::string output = Cgi::executePHP("server" + req.path, req.body);
+	if (output != "")
+	{
+    	Response rep;
+    	rep.body = output ;
+		rep.http = "HTTP/1.1";
+		rep.attributes["Content-Type"] = "text/html";
+		rep.status = 200;
+		rep.ready = true;
+    	return rep;
+	}
+	else
+	{
+		Response rep;
+		return rep;
+	}
 }
 
 Response Server::_delete(const Request& req)

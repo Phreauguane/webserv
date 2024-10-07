@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.h                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: rmidou <rmidou@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:18:44 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/30 12:56:33 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/10/07 15:55:59 by rmidou           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 #include "Location.h"
 #include "Request.h"
 #include "Response.h"
+#include "Cgi.h"
 
 enum req_type
 {
