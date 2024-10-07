@@ -6,7 +6,7 @@
 /*   By: rmidou <rmidou@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/07 15:27:16 by rmidou            #+#    #+#             */
-/*   Updated: 2024/10/07 15:55:34 by rmidou           ###   ########.fr       */
+/*   Updated: 2024/10/07 17:11:12 by rmidou           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,7 @@ void executeChildProcess(const char* php_cgi, char* args[], char* envp[], int* p
 	int pipe_stdin[2];
 	if (pipe(pipe_stdin) == -1)
 	{
-		std::cout << "Erreur lors de la création du pipe stdin" << std::endl;
+		throw std::runtime_error("Failed to create stdin pipe");
 		_exit(EXIT_FAILURE);
 	}
 
@@ -61,7 +61,7 @@ std::string handleParentProcess(int* pipefd, pid_t pid)
 	int status;
 	waitpid(pid, &status, 0);
 	if (WIFEXITED(status))
-		std::cout << "Le processus enfant s'est terminé avec le code " << WEXITSTATUS(status) << std::endl;
+		std::cout << "The child process ended with the code " << WEXITSTATUS(status) << std::endl;
 	return result;
 }
 
@@ -71,7 +71,7 @@ int* createPipes()
 	static int pipefd[2];
 	if (pipe(pipefd) == -1)
 	{
-		std::cout << "Erreur lors de la création du pipe" <<std::endl; //whl log throw
+		throw std::runtime_error("Failed to create pipe");
 		return NULL;
 	}
 	return pipefd;
@@ -87,14 +87,12 @@ std::string Cgi::executePHP(const std::string& scriptPath, const std::string& qu
 
 	// Variables d'environnement
 	std::string request_method = "REQUEST_METHOD=POST"; /// changer whl
-	std::string query_string = "QUERY_STRING=" + query; ///verifier que c'est urile whl
 	std::string content_type = "CONTENT_TYPE=application/x-www-form-urlencoded";
 	std::string content_length = "CONTENT_LENGTH=" + intToString(query.length());
 	std::string script_filename = "SCRIPT_FILENAME=" + scriptPath;
 
 	char* envp[] = {
 		(char*)request_method.c_str(),
-		(char*)query_string.c_str(), ///whl
 		(char*)content_length.c_str(),
 		(char*)content_type.c_str(),
 		(char*)script_filename.c_str(),
@@ -111,7 +109,7 @@ std::string Cgi::executePHP(const std::string& scriptPath, const std::string& qu
 	pid_t pid = fork();
 	if (pid < 0)
 	{
-		std::cout << "Erreur lors de fork" << std::endl;
+		throw std::runtime_error("Fork failed");
 		return "";
 	}
 	else if (pid == 0)
