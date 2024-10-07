@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.h                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: rmidou <rmidou@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/15 00:25:35 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/23 17:03:02 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/10/07 19:03:33 by rmidou           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,5 +32,5 @@ namespace Utils
 	{
 		return std::find(vec.begin(), vec.end(), e) != vec.end();
 	}
-
+	bool compareAfterDot(const std::string &str, const char *cmp);
 }

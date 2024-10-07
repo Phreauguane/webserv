@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
+/*   By: rmidou <rmidou@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/15 00:27:44 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/09/23 17:38:56 by jde-meo          ###   ########.fr       */
+/*   Updated: 2024/10/07 19:27:52 by rmidou           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -189,4 +189,35 @@ std::string Utils::readFile(const std::string& filename)
 	}
 	file.close();
 	return out;
+}
+
+
+int my_strcmp(const char *str1, const char *str2)
+{
+	while (*str1 && (*str1 == *str2))
+	{
+		++str1;
+		++str2;
+	}
+	return *(unsigned char *)str1 - *(unsigned char *)str2;
+}
+
+bool Utils::compareAfterDot(const std::string &str, const char *cmp)
+{
+	size_t pos = size_t(-1);
+		
+	// Parcours de la chaîne pour trouver le point
+	for (size_t i = 0; i < str.size(); ++i)
+	{
+		if (str[i] == '.') {
+			pos = i;
+			break;
+		}
+	}
+	// Si aucun point n'a été trouvé
+	if (pos == size_t(-1))
+		return false;
+	// Comparer la chaîne après le point
+	const char *suffix = str.c_str() + pos + 1;
+	return my_strcmp(suffix, cmp) == 0;
 }
