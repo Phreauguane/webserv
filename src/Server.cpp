@@ -332,9 +332,9 @@ Response Server::_get(const Request& req)
 	Location *loc = _getLocation(req.path);
 	// verify method
 	std::string method = "GET";
-	if (Utils::searchFor(loc->_allowed_methods, method))
-		Logger::log("MIAOU", SUCCESS);
-	// ---
+	Response rep;
+	if (!Utils::searchFor(loc->_allowed_methods, method))
+		return rep;
 	std::string path = _findResourcePath(req, loc);
 	try
 	{
@@ -359,10 +359,40 @@ Response Server::_get(const Request& req)
 	{
 		Logger::log(e.what(), ERROR);
 	}
-	Response rep;
 	return rep;
 }
 
+Response Server::_post(const Request& req)
+{
+	Location *loc = _getLocation(req.path);
+	// verify method
+	std::string method = "POST";
+	Response rep;
+	if (!Utils::searchFor(loc->_allowed_methods, method))
+		return rep;
+	std::string path = _findResourcePath(req, loc);
+	std::string output = "";
+	if (Utils::compareAfterDot (path, "php"))
+		output = Cgi::executePHP(path, req.body);
+	if (output != "")
+	{
+    	Response rep;
+    	rep.body = output ;
+		rep.http = "HTTP/1.1";
+		rep.attributes["Content-Type"] = "text/html";
+		rep.status = 200;
+		rep.ready = true;
+    	return rep;
+	}
+	return rep;
+}
+
+Response Server::_delete(const Request& req)
+{
+	(void)req;
+	Response rep;
+	return rep;
+}
 
 std::string Server::_listDirectory(const std::string &path)
 {
@@ -444,7 +474,27 @@ Response Server::_autoIndex(const std::string& path)
 Response Server::_readFile(const Request& req, const std::string& path)
 {
 	Logger::log("Reading file", DEBUG);
-	(void)req;
+	std::string output = "";
+
+	// Try to run PHP CGI if the file is .php
+	// TO DO WITH OTHER CGI TYPES
+	// Not definitive, to restructure.
+	if (Utils::compareAfterDot (path, "php"))
+	{
+		output = Cgi::executePHP(path, req.body);
+		if (output != "")
+		{
+    		Response rep;
+    		rep.body = output ;
+			rep.http = "HTTP/1.1";
+			rep.attributes["Content-Type"] = "text/html";
+			rep.status = 200;
+			rep.ready = true;
+    		return rep;
+		}
+	}
+
+	// If execution fails or if file is not .php
 	std::string content = Utils::readFile(path);
 	Response rep;
 	rep.body = content;
@@ -465,32 +515,6 @@ Response Server::_readFile(const Request& req, const std::string& path)
 	rep.status = 200;
 	rep.phrase = "OK";
 	rep.ready = true;
-	return rep;
-}
-
-Response Server::_post(const Request& req)
-{
-	std::string output = "";
-	if (Utils::compareAfterDot (req.path, "php"))
-		output = Cgi::executePHP("server" + req.path, req.body);
-	if (output != "")
-	{
-    	Response rep;
-    	rep.body = output ;
-		rep.http = "HTTP/1.1";
-		rep.attributes["Content-Type"] = "text/html";
-		rep.status = 200;
-		rep.ready = true;
-    	return rep;
-	}
-	Response rep;
-	return rep;
-}
-
-Response Server::_delete(const Request& req)
-{
-	(void)req;
-	Response rep;
 	return rep;
 }
 

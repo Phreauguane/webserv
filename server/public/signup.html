@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <link rel="stylesheet" href="login.css">
+    <title>Sign up</title>
+    <link rel="stylesheet" href="../assets/login.css">
 </head>
 <body>
     <div class="header">
-        <h1>Login</h1>
+        <h1>Sign up</h1>
     </div>
     <div class="container">
-        <form class="login-form" action="/login.php" method="POST">
+        <form class="login-form" action="../private/signup.php" method="POST">
             <input type="text" name="username" class="text-input" placeholder="Username" required>
             <input type="password" name="password" class="text-input" placeholder="Password" required>
+            <input type="password" name="password" class="text-input" placeholder="Confirm password" required>
 
-            <button type="submit" class="submit-btn">Log in</button>
-            <a href="/sign_up.html" class="sign-up">Sign up</a>
+            <button type="submit" class="submit-btn">Create account</button>
         </form>
     </div>
 </body>

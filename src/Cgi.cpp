@@ -63,6 +63,8 @@ std::string handleParentProcess(int* pipefd, pid_t pid)
 	if (WIFEXITED(status))
 		std::cout << "The child process ended with the code " << WEXITSTATUS(status) << std::endl;
 	return result;
+
+	// Parse output of the php process, return Response instead of string.
 }
 
 
@@ -80,6 +82,7 @@ int* createPipes()
 
 std::string Cgi::executePHP(const std::string& scriptPath, const std::string& query)
 {
+	// a aller chercher dans envp
 	const char* php_cgi = "/usr/bin/php-cgi"; // Chemin vers l'interpréteur PHP
 
 	// Arguments pour execve

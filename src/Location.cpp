@@ -184,6 +184,7 @@ void Location::addChildren(const std::string& source)
 {
 	Location* loc = new Location(source, _env);
 	loc->_parent = this;
+	loc->_root = _root;
 	loc->_allowed_methods = _allowed_methods;
 	_locations[loc->_name] = loc;
 }

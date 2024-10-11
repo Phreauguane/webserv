@@ -22,6 +22,7 @@ public:
 	Location(const Location&);
 	Location(const std::string&, char**);
 	std::string getName() const;
+	std::string getFullPath() const;
 	void printDetails() const;
 	void parseLine(const std::vector<std::string>&);
 	void parseConfig(const std::string&);
