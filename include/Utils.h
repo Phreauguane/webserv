@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.h                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rmidou <rmidou@student.42.fr>              +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/15 00:25:35 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/10/07 19:03:33 by rmidou           ###   ########.fr       */
+/*   Updated: 2024/10/11 23:14:25 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,10 @@ namespace Utils
 	std::string removeSemicolon(const std::string&);
 	std::string getCurrentTime();
 	std::string readFile(const std::string&);
+	std::string readFD(int);
+	std::string toString(int);
+	std::string toString(float);
+	std::string toString(size_t);
 	std::vector<std::string> splitString(const std::string&, const std::string&);
 	int inet_pton_v4(const std::string&, in_addr_t*);
 	void verify_args(const std::vector<std::string>&, size_t, size_t);

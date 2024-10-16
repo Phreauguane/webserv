@@ -3,17 +3,19 @@
 /*                                                        :::      ::::::::   */
 /*   Cgi.h                                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rmidou <rmidou@student.42.fr>              +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/07 15:28:31 by rmidou            #+#    #+#             */
-/*   Updated: 2024/10/07 15:49:20 by rmidou           ###   ########.fr       */
+/*   Updated: 2024/10/11 23:33:04 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "webserv.h"
-#include <sys/wait.h>
+#include "Request.h"
+#include "Response.h"
 
 namespace Cgi
 {
 	std::string executePHP(const std::string& scriptPath, const std::string& query);
+	bool executeCGI(const Request&, Response&);
 }

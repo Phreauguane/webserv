@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rmidou <rmidou@student.42.fr>              +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/13 14:19:33 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/10/07 19:20:50 by rmidou           ###   ########.fr       */
+/*   Updated: 2024/10/11 23:03:21 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -366,11 +366,16 @@ Response Server::_post(const Request& req)
 {
 	Location *loc = _getLocation(req.path);
 	// verify method
-	std::string method = "POST";
 	Response rep;
+	std::string method = "POST";
+	Logger::log("POST on location : " + loc->getName(), DEBUG);
 	if (!Utils::searchFor(loc->_allowed_methods, method))
+	{
+		Logger::log("Method POST not allowed", ERROR);	
 		return rep;
+	}
 	std::string path = _findResourcePath(req, loc);
+	Logger::log("path : " + path, DEBUG);
 	std::string output = "";
 	if (Utils::compareAfterDot (path, "php"))
 		output = Cgi::executePHP(path, req.body);

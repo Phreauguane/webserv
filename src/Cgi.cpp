@@ -3,21 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   Cgi.cpp                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rmidou <rmidou@student.42.fr>              +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/07 15:27:16 by rmidou            #+#    #+#             */
-/*   Updated: 2024/10/07 17:11:12 by rmidou           ###   ########.fr       */
+/*   Updated: 2024/10/16 16:03:44 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include "Utils.h"
 #include "Cgi.h"
-
-std::string intToString(int number)
-{
-	std::stringstream ss;
-	ss << number; 
-	return ss.str();
-}
 
 void executeChildProcess(const char* php_cgi, char* args[], char* envp[], int* pipefd, const std::string& query)
 {
@@ -47,21 +41,16 @@ std::string handleParentProcess(int* pipefd, pid_t pid)
 {
 	close(pipefd[1]); // Fermer le côté écriture du pipe
 
-	std::string result;
-	char buffer[128];
-	int bytesRead;
-	while ((bytesRead = read(pipefd[0], buffer, sizeof(buffer) - 1)) > 0)
-	{
-		buffer[bytesRead] = '\0';
-		result += buffer;
-	}
+	std::string result = Utils::readFD(pipefd[0]);
 	close(pipefd[0]);
+
+	Logger::log(result, TEXT);
 	
 	// Attendre la fin du processus enfant
 	int status;
 	waitpid(pid, &status, 0);
 	if (WIFEXITED(status))
-		std::cout << "The child process ended with the code " << WEXITSTATUS(status) << std::endl;
+		Logger::log("Child process code : " + Utils::toString(WEXITSTATUS(status)), DEBUG);
 	return result;
 
 	// Parse output of the php process, return Response instead of string.
@@ -91,7 +80,7 @@ std::string Cgi::executePHP(const std::string& scriptPath, const std::string& qu
 	// Variables d'environnement
 	std::string request_method = "REQUEST_METHOD=POST"; /// changer whl
 	std::string content_type = "CONTENT_TYPE=application/x-www-form-urlencoded";
-	std::string content_length = "CONTENT_LENGTH=" + intToString(query.length());
+	std::string content_length = "CONTENT_LENGTH=" + Utils::toString(query.length());
 	std::string script_filename = "SCRIPT_FILENAME=" + scriptPath;
 
 	char* envp[] = {
@@ -113,7 +102,6 @@ std::string Cgi::executePHP(const std::string& scriptPath, const std::string& qu
 	if (pid < 0)
 	{
 		throw std::runtime_error("Fork failed");
-		return "";
 	}
 	else if (pid == 0)
 	{
@@ -126,4 +114,9 @@ std::string Cgi::executePHP(const std::string& scriptPath, const std::string& qu
 		return handleParentProcess(pipefd, pid);
 	}
 	return "";
+}
+
+bool executeCGI(const Request &req, Response &rep)
+{
+	
 }

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rmidou <rmidou@student.42.fr>              +#+  +:+       +#+        */
+/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/15 00:27:44 by jde-meo           #+#    #+#             */
-/*   Updated: 2024/10/07 19:27:52 by rmidou           ###   ########.fr       */
+/*   Updated: 2024/10/11 23:17:04 by jde-meo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -191,6 +191,42 @@ std::string Utils::readFile(const std::string& filename)
 	return out;
 }
 
+std::string Utils::readFD(int fd) {
+    char buffer[1024];
+    std::string result;
+    ssize_t bytesRead;
+
+    while ((bytesRead = read(fd, buffer, 1024)) > 0) {
+        result.append(buffer, bytesRead);
+    }
+
+    if (bytesRead == -1) {
+		throw std::runtime_error("read error in Utils::readFD");
+    }
+
+    return result;
+}
+
+std::string Utils::toString(int i)
+{
+	std::stringstream ss;
+	ss << i;
+	return ss.str();
+}
+
+std::string Utils::toString(float f)
+{
+	std::stringstream ss;
+	ss << f;
+	return ss.str();
+}
+
+std::string Utils::toString(size_t s)
+{
+	std::stringstream ss;
+	ss << s;
+	return ss.str();
+}
 
 int my_strcmp(const char *str1, const char *str2)
 {
