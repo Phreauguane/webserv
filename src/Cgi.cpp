@@ -1,16 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   Cgi.cpp                                            :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: jde-meo <jde-meo@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/10/07 15:27:16 by rmidou            #+#    #+#             */
-/*   Updated: 2024/10/16 16:03:44 by jde-meo          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
-#include "Utils.h"
 #include "Cgi.h"
 
 void executeChildProcess(const char* php_cgi, char* args[], char* envp[], int* pipefd, const std::string& query)
