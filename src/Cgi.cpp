@@ -1,3 +1,4 @@
+#include "Utils.h"
 #include "Cgi.h"
 
 void executeChildProcess(const char* php_cgi, char* args[], char* envp[], int* pipefd, const std::string& query)
