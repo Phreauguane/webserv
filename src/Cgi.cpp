@@ -1,7 +1,44 @@
 #include "Utils.h"
 #include "Cgi.h"
 
-void executeChildProcess(const char* php_cgi, char* args[], char* envp[], int* pipefd, const std::string& query)
+CGI::CGI()
+{
+	// Jte donne rien
+}
+
+CGI::CGI(const CGI& copy)
+{
+	*this = copy;
+}
+
+void CGI::setup(char **env)
+{
+	_env = env;
+}
+
+CGI& CGI::operator=(const CGI& copy)
+{
+	_env = copy._env;
+	return *this;
+}
+
+CGI::~CGI()
+{
+	// Je recupere tout
+}
+
+static int *createPipes()
+{
+	static int pipefd[2];
+	if (pipe(pipefd) == -1)
+	{
+		throw std::runtime_error("Failed to create pipe");
+		return NULL;
+	}
+	return pipefd;
+}
+
+void CGI::_executeCommand(const std::string& cmd, const std::string& query, char **args, char **envp, int *pipefd)
 {
 	// Processus enfant
 	dup2(pipefd[1], STDOUT_FILENO); // Rediriger la sortie standard vers le pipe
@@ -9,23 +46,31 @@ void executeChildProcess(const char* php_cgi, char* args[], char* envp[], int* p
 	close(pipefd[1]); // Fermer l'extrémité en écriture après duplication
 
 	// Utiliser un pipe pour envoyer les données POST via l'entrée standard
-	int pipe_stdin[2];
-	if (pipe(pipe_stdin) == -1)
-	{
-		throw std::runtime_error("Failed to create stdin pipe");
-		_exit(EXIT_FAILURE);
-	}
+	int *pipe_stdin = createPipes();
 
 	dup2(pipe_stdin[0], STDIN_FILENO);  // Rediriger stdin vers le pipe
 	close(pipe_stdin[0]);
-	write(pipe_stdin[1], query.c_str(), query.length()); // Envoyer les données POST
+	if (query.size() > 0)
+		write(pipe_stdin[1], query.c_str(), query.size()); // Envoyer les données POST
 	close(pipe_stdin[1]);
 
-	execve(php_cgi, args, envp); // Exécuter PHP CGI
-	_exit(EXIT_FAILURE); // Si execve échoue
+	execve(cmd.c_str(), args, envp); // Exécuter PHP CGI
+	throw std::runtime_error("execve error");
 }
 
-std::string handleParentProcess(int* pipefd, pid_t pid)
+Response parseOutputPHP(const std::string& output)
+{
+	// TO DO
+	Response rep;
+	rep.http = "HTTP/1.1";
+	rep.status = 200;
+	rep.phrase = "OK";
+	rep.body = output;
+	rep.ready = true;
+	return rep;
+}
+
+Response handleParentProcessPHP(int* pipefd, pid_t pid)
 {
 	close(pipefd[1]); // Fermer le côté écriture du pipe
 
@@ -39,72 +84,133 @@ std::string handleParentProcess(int* pipefd, pid_t pid)
 	waitpid(pid, &status, 0);
 	if (WIFEXITED(status))
 		Logger::log("Child process code : " + Utils::toString(WEXITSTATUS(status)), DEBUG);
-	return result;
+	return parseOutputPHP(result);
 
 	// Parse output of the php process, return Response instead of string.
 }
 
-
-int* createPipes()
+std::string CGI::_getQuery(const Request& req)
 {
-	static int pipefd[2];
-	if (pipe(pipefd) == -1)
-	{
-		throw std::runtime_error("Failed to create pipe");
-		return NULL;
-	}
-	return pipefd;
+	if (req.method == "POST")
+		return req.body;
+	if (req.method != "GET")
+		return "Wallah jsais pas";
+
+	size_t pos = req.path.find("?");
+	if (pos == std::string::npos)
+		return "";
+	
+	return req.path.substr(pos + 1, req.path.size() - pos - 1);
 }
 
+static std::string get_paths(char **envp)
+{
+	for (size_t i = 0; envp[i] != NULL; i++)
+	{
+		if (envp[i][0] == 'P' && envp[i][1] == 'A'
+			&& envp[i][2] == 'T' && envp[i][3] == 'H'
+			&& envp[i][4] == '=')
+			return &(envp[i][5]);
+	}
+	return "";
+}
 
-std::string Cgi::executePHP(const std::string& scriptPath, const std::string& query)
+std::string CGI::_getExec(std::string cmd)
+{
+	std::vector<std::string> paths;
+	std::string paths_no_split;
+
+	paths_no_split = get_paths(_env);
+	if (paths_no_split.size() == 0)
+		return cmd;
+	paths = Utils::splitString(paths_no_split, ":");
+	for (size_t i = 0; i < paths.size(); ++i)
+	{
+		paths[i] += "/" + cmd;
+		if (access(paths[i].c_str(), F_OK | X_OK) == 0)
+			return paths[i];
+	}
+	return cmd;
+}
+
+Response CGI::_execPHP(const std::string& path, Request& req)
 {
 	// a aller chercher dans envp
-	const char* php_cgi = "/usr/bin/php-cgi"; // Chemin vers l'interpréteur PHP
+	std::string php_cgi = _getExec("php-cgi"); // Chemin vers l'interpréteur PHP
 
 	// Arguments pour execve
-	char* args[] = {(char*)php_cgi, (char*)scriptPath.c_str(), NULL};
+	char *args[] = {(char*)php_cgi.c_str(), (char*)path.c_str(), NULL};
 
 	// Variables d'environnement
-	std::string request_method = "REQUEST_METHOD=POST"; /// changer whl
-	std::string content_type = "CONTENT_TYPE=application/x-www-form-urlencoded";
-	std::string content_length = "CONTENT_LENGTH=" + Utils::toString(query.length());
-	std::string script_filename = "SCRIPT_FILENAME=" + scriptPath;
+	std::string request_method = "REQUEST_METHOD=" + req.method;
+	std::string content_type = "CONTENT_TYPE=" + req.attributes["Content-Type"];
+	std::string content_length = "CONTENT_LENGTH=" + Utils::toString(req.body.size());
+	std::string script_filename = "SCRIPT_FILENAME=" + path;
 
 	char* envp[] = {
 		(char*)request_method.c_str(),
 		(char*)content_length.c_str(),
 		(char*)content_type.c_str(),
 		(char*)script_filename.c_str(),
-		(char*)"REDIRECT_STATUS=200", //whl les radis
+		(char*)"REDIRECT_STATUS=200",
 		NULL
 	};
 
 	// Créer les pipes
 	int* pipefd = createPipes();
 	if (pipefd == NULL)
-		return "";
+		throw std::runtime_error("Unable to create pipe");
 
 	// Créer un nouveau processus avec fork
 	pid_t pid = fork();
 	if (pid < 0)
-	{
-		throw std::runtime_error("Fork failed");
-	}
+		throw std::runtime_error("Unable to fork");
 	else if (pid == 0)
 	{
-		// Processus enfant
-		executeChildProcess(php_cgi, args, envp, pipefd, query);
+		try
+		{
+			_executeCommand(php_cgi, _getQuery(req), args, envp, pipefd);
+		}
+		catch(const std::runtime_error& e)
+		{
+			Logger::log(e.what(), ERROR);
+			exit(EXIT_FAILURE);
+		}
+	}
+	else
+		return handleParentProcessPHP(pipefd, pid);
+	Response rep;
+	return rep;
+}
+
+bool CGI::executeCGI(Request &req, const std::string &path, Location *loc, Response &rep)
+{
+	// verifier que l'extension soit autorisee
+	bool allowed = false;
+	std::string ext = Utils::getExt(req.path);
+	if (ext == "")
+		return false;
+	for (size_t i = 0; i < loc->_cgi_exts.size(); ++i)
+	{
+		if (ext == loc->_cgi_exts[i])
+		{
+			allowed = true;
+			break;
+		}
+	}
+	
+	if (!allowed)
+		return false;
+
+	if (ext == ".php")
+	{
+		Logger::log("Running php...", DEBUG);
+		rep = _execPHP(path, req);
 	}
 	else
 	{
-		// Processus parent
-		return handleParentProcess(pipefd, pid);
+		Logger::log("Unkown ext : " + ext, DEBUG);
+		return false;
 	}
-	return "";
-}
-
-bool executeCGI(const Request &req, Response &rep)
-{
-	
+	return true;
 }

@@ -75,6 +75,7 @@ void Server::_parseSource(const std::string& source)
 Server::Server(const std::string& source, char **env)
 {
 	_env = env;
+	cgiHandler.setup(_env);
 	_root_loc = new Location(_env);
 	_parseSource(source);
 }
@@ -214,6 +215,7 @@ int Server::getSockFd() const
 
 Server& Server::operator=(const Server& copy)
 {
+	cgiHandler = copy.cgiHandler;
 	_env = copy._env;
 	_host = copy._host;
 	_port = copy._port;
@@ -273,15 +275,24 @@ Location *Server::_getLocation(const std::string& path)
 	return _root_loc->getSubLoc(path);
 }
 
-Response Server::executeRequest(const Request& req)
+Response Server::executeRequest(Request& req)
 {
+	Response rep;
+
+	// Recupere la location visee par la requete
+	Location *loc = _getLocation(req.path);
+	std::string path = _findResourcePath(req, loc);
+	// Tente d'executer le CGI
+	if (cgiHandler.executeCGI(req, path, loc, rep))
+		return rep;
+	Logger::log("Not CGI, running methods...", DEBUG);
 	if (req.method == "GET")
 		return _get(req);
 	if (req.method == "POST")
 		return _post(req);
 	if (req.method == "DELETE")
 		return _delete(req);
-	throw std::runtime_error("Unkown method : " + req.method);
+	throw std::runtime_error("Unable to execute request");
 }
 
 req_type Server::_getType(const std::string& path)
@@ -364,19 +375,7 @@ Response Server::_post(const Request& req)
 	}
 	std::string path = _findResourcePath(req, loc);
 	Logger::log("path : " + path, DEBUG);
-	std::string output = "";
-	if (Utils::compareAfterDot (path, "php"))
-		output = Cgi::executePHP(path, req.body);
-	if (output != "")
-	{
-    	Response rep;
-    	rep.body = output ;
-		rep.http = "HTTP/1.1";
-		rep.attributes["Content-Type"] = "text/html";
-		rep.status = 200;
-		rep.ready = true;
-    	return rep;
-	}
+	// TO IMPLEMENT
 	return rep;
 }
 
@@ -467,25 +466,7 @@ Response Server::_autoIndex(const std::string& path)
 Response Server::_readFile(const Request& req, const std::string& path)
 {
 	Logger::log("Reading file", DEBUG);
-	std::string output = "";
-
-	// Try to run PHP CGI if the file is .php
-	// TO DO WITH OTHER CGI TYPES
-	// Not definitive, to restructure.
-	if (Utils::compareAfterDot (path, "php"))
-	{
-		output = Cgi::executePHP(path, req.body);
-		if (output != "")
-		{
-    		Response rep;
-    		rep.body = output ;
-			rep.http = "HTTP/1.1";
-			rep.attributes["Content-Type"] = "text/html";
-			rep.status = 200;
-			rep.ready = true;
-    		return rep;
-		}
-	}
+	(void)req;
 
 	// If execution fails or if file is not .php
 	std::string content = Utils::readFile(path);

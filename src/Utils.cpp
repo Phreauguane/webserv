@@ -216,32 +216,17 @@ std::string Utils::toString(size_t s)
 	return ss.str();
 }
 
-int my_strcmp(const char *str1, const char *str2)
+std::string Utils::getExt(const std::string &str)
 {
-	while (*str1 && (*str1 == *str2))
-	{
-		++str1;
-		++str2;
-	}
-	return *(unsigned char *)str1 - *(unsigned char *)str2;
-}
-
-bool Utils::compareAfterDot(const std::string &str, const char *cmp)
-{
-	size_t pos = size_t(-1);
-		
-	// Parcours de la chaîne pour trouver le point
-	for (size_t i = 0; i < str.size(); ++i)
-	{
-		if (str[i] == '.') {
-			pos = i;
-			break;
-		}
-	}
-	// Si aucun point n'a été trouvé
-	if (pos == size_t(-1))
-		return false;
-	// Comparer la chaîne après le point
-	const char *suffix = str.c_str() + pos + 1;
-	return my_strcmp(suffix, cmp) == 0;
+	size_t pos = str.find_last_of(".");
+	size_t pos_2 = str.find("?");
+	
+	if (pos == std::string::npos || pos > pos_2)
+		return "";
+	
+	size_t size = str.size() - pos;
+	if (pos_2 == std::string::npos)
+		size = pos_2 - pos;
+	
+	return str.substr(pos, size);
 }

@@ -24,5 +24,5 @@ namespace Utils
 	{
 		return std::find(vec.begin(), vec.end(), e) != vec.end();
 	}
-	bool compareAfterDot(const std::string &str, const char *cmp);
+	std::string getExt(const std::string&);
 }

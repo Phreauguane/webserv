@@ -21,7 +21,7 @@ SRC		=	main.cpp			\
 			
 
 all		:
-	$(CPP) -I $(INCLUDE) $(RELEASE_MODE) $(SRC) -o $(NAME)
+	$(CPP) -I $(INCLUDE) $(DEBUG_MODE) $(SRC) -o $(NAME)
 
 debug	:
 	$(CPP) -I $(INCLUDE) $(DEBUG_MODE) $(SRC) -o $(NAME)

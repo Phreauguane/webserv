@@ -1,9 +1,24 @@
+#pragma once
+
 #include "webserv.h"
 #include "Request.h"
 #include "Response.h"
+#include "Location.h"
 
-namespace Cgi
+class CGI
 {
-	std::string executePHP(const std::string& scriptPath, const std::string& query);
-	bool executeCGI(const Request&, Response&);
-}
+public:
+	CGI();
+	CGI(const CGI&);
+	void setup(char**);
+	bool executeCGI(Request&, const std::string&, Location*, Response&);
+	CGI& operator=(const CGI&);
+	~CGI();
+private:
+	std::string _getExec(std::string);
+	Response _execPHP(const std::string&, Request&);
+	std::string _getQuery(const Request&);
+	void _executeCommand(const std::string&, const std::string&, char**, char**, int*);
+private:
+	char **_env;
+};

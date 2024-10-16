@@ -25,15 +25,10 @@ Location::Location(const std::string& source, char **env)
 void Location::printDetails() const
 {
 	std::string methods;
-	std::string cgi_paths;
 	std::string cgi_exts;
 	for (size_t i = 0; i < _allowed_methods.size(); i++)
 	{
 		methods += " " + _allowed_methods[i];
-	}
-	for (size_t i = 0; i < _cgi_paths.size(); i++)
-	{
-		cgi_paths += " " + _cgi_paths[i];
 	}
 	for (size_t i = 0; i < _cgi_exts.size(); i++)
 	{
@@ -46,7 +41,6 @@ void Location::printDetails() const
 	std::cout << "║║         index : ";WIDTH(20);std::cout << _index         ;std::cout << " ║" << std::endl;
 	std::cout << "║║    Auto Index : ";WIDTH(20);std::cout << (_auto_index ? "ON" : "OFF") ;std::cout << " ║" << std::endl;
 	std::cout << "║║ Allow methods : ";WIDTH(20);std::cout << methods        ;std::cout << " ║" << std::endl;
-	std::cout << "║║     cgi paths : ";WIDTH(20);std::cout << cgi_paths      ;std::cout << " ║" << std::endl;
 	std::cout << "║║      cgi exts : ";WIDTH(20);std::cout << cgi_exts       ;std::cout << " ║" << std::endl;
 	std::cout << "╠╩══════════════════════════════════════╣" << std::endl;
 	for (std::map<std::string, Location*>::const_iterator it = _locations.begin(); it != _locations.end(); ++it)
@@ -87,19 +81,13 @@ void Location::parseLine(const std::vector<std::string>& strs)
 			_allowed_methods.push_back(strs[i]);
 		}
 	}
-    else if (strs[0] == "cgi_path")
+    else if (strs[0] == "enable_cgi")
 	{
 		Utils::verify_args(strs, 2, 999);
 		for (size_t i = 1; i < strs.size(); i++)
 		{
-			_cgi_paths.push_back(strs[i]);
-		}
-    }
-    else if (strs[0] == "cgi_ext") 
-	{
-		Utils::verify_args(strs, 2, 999);
-		for (size_t i = 1; i < strs.size(); i++)
-		{
+			if (strs[i].size() > 0 && strs[i][0] != '.')
+				throw std::runtime_error("Invalid extension : " + strs[i]);
 			_cgi_exts.push_back(strs[i]);
 		}
     }

@@ -24,7 +24,7 @@ public:
 	void setup();
 	int getSockFd() const;
 	std::string getIp();
-	Response executeRequest(const Request&);
+	Response executeRequest(Request&);
 	size_t getMaxBodySize();
 	void printDetails() const;
 	~Server();
@@ -44,6 +44,7 @@ private:
 	Location *_getLocation(const std::string&);
 private:
 	char **_env;
+	CGI cgiHandler;
 	std::string _name, _ip_addr;
 	bool _ready;
 	struct sockaddr_in _servaddr;
