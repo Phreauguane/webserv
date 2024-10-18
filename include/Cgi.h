@@ -15,10 +15,12 @@ public:
 	CGI& operator=(const CGI&);
 	~CGI();
 private:
+	void _restoreStdOut();
 	std::string _getExec(std::string);
 	Response _execPHP(const std::string&, Request&);
 	std::string _getQuery(const Request&);
 	void _executeCommand(const std::string&, const std::string&, char**, char**, int*);
 private:
 	char **_env;
+	int _stdout;
 };

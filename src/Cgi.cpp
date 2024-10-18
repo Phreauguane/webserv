@@ -3,7 +3,7 @@
 
 CGI::CGI()
 {
-	// Jte donne rien
+	_stdout = dup(STDOUT_FILENO);
 }
 
 CGI::CGI(const CGI& copy)
@@ -18,6 +18,7 @@ void CGI::setup(char **env)
 
 CGI& CGI::operator=(const CGI& copy)
 {
+	_stdout = copy._stdout;
 	_env = copy._env;
 	return *this;
 }
@@ -27,19 +28,22 @@ CGI::~CGI()
 	// Je recupere tout
 }
 
+void CGI::_restoreStdOut()
+{
+	dup2(_stdout, STDOUT_FILENO);
+}
+
 static int *createPipes()
 {
 	static int pipefd[2];
 	if (pipe(pipefd) == -1)
-	{
 		throw std::runtime_error("Failed to create pipe");
-		return NULL;
-	}
 	return pipefd;
 }
 
 void CGI::_executeCommand(const std::string& cmd, const std::string& query, char **args, char **envp, int *pipefd)
 {
+	Logger::log("Running command : " + cmd, DEBUG);
 	// Processus enfant
 	dup2(pipefd[1], STDOUT_FILENO); // Rediriger la sortie standard vers le pipe
 	close(pipefd[0]); // Fermer l'extrémité en lecture du pipe
@@ -53,9 +57,9 @@ void CGI::_executeCommand(const std::string& cmd, const std::string& query, char
 	if (query.size() > 0)
 		write(pipe_stdin[1], query.c_str(), query.size()); // Envoyer les données POST
 	close(pipe_stdin[1]);
-
 	execve(cmd.c_str(), args, envp); // Exécuter PHP CGI
-	throw std::runtime_error("execve error");
+	_restoreStdOut();
+	throw std::runtime_error("Unkown command : " + cmd);
 }
 
 Response parseOutputPHP(const std::string& output)
