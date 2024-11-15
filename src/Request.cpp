@@ -24,6 +24,8 @@ void Request::parseRequest()
 	std::vector<std::string> head_body = Utils::splitString(request, "\r\n\r\n");
 	if (head_body.size() > 1)
 		body = head_body[1];
+	if (head_body.size() > 2)	
+		files = head_body[2];
 	std::vector<std::string> lines = Utils::splitString(head_body[0], "\n");
 	for (size_t i = 0; i < lines.size(); i++)
 	{

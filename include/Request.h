@@ -32,4 +32,5 @@ public:
 	std::map<std::string, std::string> attributes;
 	bool keep_alive;
 	std::string body;
+	std::string files;
 };

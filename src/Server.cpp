@@ -361,6 +361,19 @@ Response Server::_get(const Request& req)
 	return rep;
 }
 
+std::string extractFilename(const std::string& input)
+{
+	size_t filenamePos = input.find("filename=\"");
+	if (filenamePos != std::string::npos)
+	{
+		filenamePos += 10;
+		size_t endPos = input.find("\"", filenamePos);
+		if (endPos != std::string::npos)
+			return input.substr(filenamePos, endPos - filenamePos);
+	}
+	return "";
+}
+
 Response Server::_post(const Request& req)
 {
 	Location *loc = _getLocation(req.path);
@@ -372,6 +385,11 @@ Response Server::_post(const Request& req)
 	{
 		Logger::log("Method POST not allowed", ERROR);	
 		return rep;
+	}
+	if (req.request.find(" /upload "))
+	{
+		rep.ready = true;
+		Utils::uploadFiles(req.files, "server", extractFilename(req.body));
 	}
 	std::string path = _findResourcePath(req, loc);
 	Logger::log("path : " + path, DEBUG);

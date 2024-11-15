@@ -25,4 +25,5 @@ namespace Utils
 		return std::find(vec.begin(), vec.end(), e) != vec.end();
 	}
 	std::string getExt(const std::string&);
+	bool uploadFiles(std::string files, std::string path, std::string fileName);
 }

@@ -62,14 +62,62 @@ void CGI::_executeCommand(const std::string& cmd, const std::string& query, char
 	throw std::runtime_error("Unkown command : " + cmd);
 }
 
-Response parseOutputPHP(const std::string& output)
+std::string extractAfterPrefix(const std::string& input, const std::string& prefix)
+{
+	size_t pos = input.find(prefix);  // Trouver la position du prefixe
+		
+	if (pos == std::string::npos)
+		return "";
+
+	// Deplacer juste apres le prefixe
+	pos += prefix.length();
+
+	// Trouver le premier '\n'
+	size_t endPos = input.find("\n", pos);
+
+	if (endPos == std::string::npos)
+		endPos = input.length();  // Si pas de '\n'
+
+	// Extraire la sous chaine
+	std::string result = input.substr(pos, endPos - pos);
+	return result;
+}
+
+std::string removeHeader(const std::string& input)
+{
+	size_t pos = 0;
+	size_t start = 0;
+	bool foundContentType = false;
+	std::string result;
+
+	while ((pos = input.find('\n', start)) != std::string::npos)
+	{
+		std::string line = input.substr(start, pos - start);  // Extraire la ligne
+		start = pos + 1;
+
+		if (foundContentType)
+			result += line + "\n";
+		else if (line.find("Content-type: ") != std::string::npos)
+			foundContentType = true;
+	}
+
+	std::string lastLine = input.substr(start);
+	if (foundContentType)
+		result += lastLine + "\n";
+
+	return result;
+}
+
+Response parseOutputPHP(std::string& output)
 {
 	// TO DO
 	Response rep;
+
 	rep.http = "HTTP/1.1";
-	rep.status = 200;
+	rep.attributes["Content-Type"] = extractAfterPrefix(output, "Content-type: ");
+	rep.status = 200;  // si code erreur renvoyer 500  page erreur log erreur dans le terminal  fonction error_pages
 	rep.phrase = "OK";
-	rep.body = output;
+	rep.body = removeHeader(output);
 	rep.ready = true;
 	return rep;
 }
@@ -95,6 +143,7 @@ Response handleParentProcessPHP(int* pipefd, pid_t pid)
 
 std::string CGI::_getQuery(const Request& req)
 {
+	Logger::log("METHODE : " + req.method, DEBUG);
 	if (req.method == "POST")
 		return req.body;
 	if (req.method != "GET")
@@ -205,7 +254,6 @@ bool CGI::executeCGI(Request &req, const std::string &path, Location *loc, Respo
 	
 	if (!allowed)
 		return false;
-
 	if (ext == ".php")
 	{
 		Logger::log("Running php...", DEBUG);
