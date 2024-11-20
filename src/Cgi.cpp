@@ -251,7 +251,7 @@ bool CGI::executeCGI(Request &req, const std::string &path, Location *loc, Respo
 			break;
 		}
 	}
-	
+	Logger::log("Not allowed :" + ext, DEBUG);
 	if (!allowed)
 		return false;
 	if (ext == ".php")

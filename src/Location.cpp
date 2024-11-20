@@ -171,7 +171,6 @@ Location *Location::getSubLoc(const std::string &path)
 		return this;
 	
 	std::vector<std::string> names = Utils::splitString(path, "/");
-	
 	std::string subpath;
 	if (names.size() > 1)
 	{
@@ -182,7 +181,6 @@ Location *Location::getSubLoc(const std::string &path)
 	{
 		subpath = "";
 	}
-	
 	if (_locations[names[0]] != NULL)
 		return _locations[names[0]]->getSubLoc(subpath);
 	return this;

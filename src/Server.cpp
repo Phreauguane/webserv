@@ -500,9 +500,15 @@ Response Server::_readFile(const Request& req, const std::string& path)
 			rep.attributes["Content-Type"] = "text/html";
 		else if (ext == ".css")
 			rep.attributes["Content-Type"] = "text/css";
+		else if (ext == ".js")
+		{
+			Logger::log("JS file", DEBUG);
+			rep.attributes["Content-Type"] = "application/javascript";
+		}
 		else
 			rep.attributes["Content-Type"] = ext;
 	}
+	Logger::log("Content-Type : " + rep.attributes["Content-Type"], DEBUG);
 	rep.http = "HTTP/1.1";
 	rep.status = 200;
 	rep.phrase = "OK";
