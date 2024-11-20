@@ -16,7 +16,7 @@ void Server::_parseSource(const std::string& source)
 	size_t position = 0;
 	std::vector<std::string> lines = Utils::splitString(source, "\n");
 	
-    for (size_t i = 0; i < lines.size(); ++i) {
+	for (size_t i = 0; i < lines.size(); ++i) {
 		position = source.find(lines[i], position + 1);
 		std::string line = Utils::removeSemicolon(Utils::removeWSpaces(lines[i]));
 		std::vector<std::string> strs = Utils::splitString(line, " ");
@@ -68,8 +68,7 @@ void Server::_parseSource(const std::string& source)
 		{}
 		else
 			_root_loc->parseLine(strs);
-        // Handle other potential fields...
-    }
+	}
 }
 
 Server::Server(const std::string& source, char **env)
@@ -239,7 +238,7 @@ void Server::setup()
 	Logger::log("Socket created", DEBUG);
 	
 	int option_value = 1;
-    if (setsockopt(_sockfd, SOL_SOCKET, SO_REUSEADDR, 
+	if (setsockopt(_sockfd, SOL_SOCKET, SO_REUSEADDR, 
 		&option_value, sizeof(int)) < 0)
 		throw std::runtime_error("Failed to set socket options");
 	
@@ -297,10 +296,10 @@ Response Server::executeRequest(Request& req)
 
 req_type Server::_getType(const std::string& path)
 {
-    struct stat path_stat;
-    if (stat(path.c_str(), &path_stat) != 0)
+	struct stat path_stat;
+	if (stat(path.c_str(), &path_stat) != 0)
 		return T_NFD;
-    if (S_ISDIR(path_stat.st_mode))
+	if (S_ISDIR(path_stat.st_mode))
 		return T_DIR;
 	return T_FILE;
 }
@@ -406,43 +405,41 @@ Response Server::_delete(const Request& req)
 
 std::string Server::_listDirectory(const std::string &path)
 {
-    DIR *dir;
-    struct dirent *ent;
-    std::ostringstream html;
-    
-    dir = opendir(path.c_str());
-    if (dir == NULL)
-	{
-        return "";  // If directory doesn't exist, return a 404 error
-    }
-    
-    html << "<html><head><title>Index of " << path << "</title></head><body>";
-    html << "<h1>Index of " << path << "</h1>";
-    html << "<ul>";
-    
-    while ((ent = readdir(dir)) != NULL)
-	{
-        std::string name(ent->d_name);
-        
-        // Ignore "." and ".."
-        if (name == "." || name == "..") {
-            continue;
-        }
+	DIR *dir;
+	struct dirent *ent;
+	std::ostringstream html;
 
-        // Add a trailing slash if it's a directory
-        std::string display_name = name;
-        if (ent->d_type == DT_DIR) {
-            display_name += "/";
-        }
-        
-        html << "<li><a href=\"" << name << "\">" << display_name << "</a></li>";
-    }
-    
-    html << "</ul>";
-    html << "</body></html>";
-    
-    closedir(dir);
-    return html.str();
+	dir = opendir(path.c_str());
+	if (dir == NULL)
+		return "";  // If directory doesn't exist, return a 404 error
+		
+	html << "<html><head><title>Index of " << path << "</title></head><body>";
+	html << "<h1>Index of " << path << "</h1>";
+	html << "<ul>";
+		
+	while ((ent = readdir(dir)) != NULL)
+	{
+		std::string name(ent->d_name);
+		
+		// Ignore "." and ".."
+		if (name == "." || name == "..") {
+			continue;
+		}
+
+		// Add a trailing slash if it's a directory
+		std::string display_name = name;
+		if (ent->d_type == DT_DIR) {
+			display_name += "/";
+		}
+		
+		html << "<li><a href=\"" << name << "\">" << display_name << "</a></li>";
+	}
+		
+	html << "</ul>";
+	html << "</body></html>";
+		
+	closedir(dir);
+	return html.str();
 }
 
 Response Server::_errorPage(unsigned int code)

@@ -90,14 +90,14 @@ std::string Utils::removeSemicolon(const std::string& line)
 }
 
 std::vector<std::string> Utils::splitString(const std::string& str, const std::string& delimiter) {
-    std::vector<std::string> tokens;
-    size_t start = 0, end = str.find(delimiter);
-    while (end != std::string::npos) {
-        tokens.push_back(removeWSpaces(str.substr(start, end - start)));  // Trim each token
-        start = end + delimiter.length();
-        end = str.find(delimiter, start);
-    }
-    tokens.push_back(removeWSpaces(str.substr(start)));
+	std::vector<std::string> tokens;
+	size_t start = 0, end = str.find(delimiter);
+	while (end != std::string::npos) {
+		tokens.push_back(removeWSpaces(str.substr(start, end - start)));
+		start = end + delimiter.length();
+		end = str.find(delimiter, start);
+	}
+	tokens.push_back(removeWSpaces(str.substr(start)));
 	for (size_t i = 0; i < tokens.size(); i++)
 	{
 		if (tokens[i].size() == 0)
@@ -107,24 +107,24 @@ std::vector<std::string> Utils::splitString(const std::string& str, const std::s
 		}
 	}
 	
-    return tokens;
+	return tokens;
 }
 
 int Utils::inet_pton_v4(const std::string& ip_str, in_addr_t *addr) {
-    // Split the IP string by '.' and store in an array
-    unsigned int octets[4];
-    std::istringstream iss(ip_str);
-    char dot;
+	// Split the IP string by '.' and store in an array
+	unsigned int octets[4];
+	std::istringstream iss(ip_str);
+	char dot;
 
-    // Parse the string using dots as delimiters
-    if ((iss >> octets[0] >> dot >> octets[1] >> dot >> octets[2] >> dot >> octets[3]) &&
-        dot == '.' && (octets[0] <= 255 && octets[1] <= 255 && octets[2] <= 255 && octets[3] <= 255)) {
-        // Convert the IP string to a 32-bit integer in network byte order (big-endian)
-        *(addr) = (octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3];
-        return 1; // Success
-    }
+	// Parse the string using dots as delimiters
+	if ((iss >> octets[0] >> dot >> octets[1] >> dot >> octets[2] >> dot >> octets[3]) &&
+		dot == '.' && (octets[0] <= 255 && octets[1] <= 255 && octets[2] <= 255 && octets[3] <= 255)) {
+		// Convert the IP string to a 32-bit integer in network byte order (big-endian)
+		*(addr) = (octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3];
+		return 1; // Success
+	}
 
-    return 0; // Error: invalid format
+	return 0; // Error: invalid format
 }
 
 void Utils::verify_args(const std::vector<std::string>& strs, size_t min, size_t max)
@@ -180,19 +180,19 @@ std::string Utils::readFile(const std::string& filename)
 }
 
 std::string Utils::readFD(int fd) {
-    char buffer[1024];
-    std::string result;
-    ssize_t bytesRead;
+	char buffer[1024];
+	std::string result;
+	ssize_t bytesRead;
 
-    while ((bytesRead = read(fd, buffer, 1024)) > 0) {
-        result.append(buffer, bytesRead);
-    }
+	while ((bytesRead = read(fd, buffer, 1024)) > 0) {
+		result.append(buffer, bytesRead);
+	}
 
-    if (bytesRead == -1) {
+	if (bytesRead == -1) {
 		throw std::runtime_error("read error in Utils::readFD");
-    }
+	}
 
-    return result;
+	return result;
 }
 
 std::string Utils::toString(int i)
@@ -233,22 +233,22 @@ std::string Utils::getExt(const std::string &str)
 
 bool Utils::uploadFiles(std::string files, std::string path, std::string fileName)
 {
-    // Construire le chemin complet du fichier
-    std::string fullPath = path + "/upload/" + fileName;
-    // Créer et ouvrir le fichier dans le dossier spécifié
-    std::ofstream file;
+	// Construire le chemin complet du fichier
+	std::string fullPath = path + "/upload/" + fileName;
+	// Créer et ouvrir le fichier dans le dossier spécifié
+	std::ofstream file;
 
-    file.open(fullPath.c_str(), std::ios::out);
-    if (!file)
+	file.open(fullPath.c_str(), std::ios::out);
+	if (!file)
 	{
 		Logger::log("FAIL UPLOAD on location : " + fullPath, DEBUG);
 		return false;
 	}
 	else
 	{
-        file << files;
+		file << files;
 		Logger::log("UPLOAD on location : " + fullPath, DEBUG);
-    }
-    file.close(); // Fermer le fichier
-    return 0;
+	}
+	file.close(); // Fermer le fichier
+	return 0;
 }

@@ -81,7 +81,7 @@ void Location::parseLine(const std::vector<std::string>& strs)
 			_allowed_methods.push_back(strs[i]);
 		}
 	}
-    else if (strs[0] == "enable_cgi")
+	else if (strs[0] == "enable_cgi")
 	{
 		Utils::verify_args(strs, 2, 999);
 		for (size_t i = 1; i < strs.size(); i++)
@@ -90,12 +90,12 @@ void Location::parseLine(const std::vector<std::string>& strs)
 				throw std::runtime_error("Invalid extension : " + strs[i]);
 			_cgi_exts.push_back(strs[i]);
 		}
-    }
+	}
 	else if (strs[0] == "autoindex")
 	{
 		Utils::verify_args(strs, 2, 2);
-        _auto_index = (strs[1] == "on" || strs[1] == "ON");
-    }
+		_auto_index = (strs[1] == "on" || strs[1] == "ON");
+	}
 	else if (strs[0] == "return")
 	{
 		Utils::verify_args(strs, 2, 3);
@@ -125,7 +125,7 @@ void Location::parseConfig(const std::string& configString) {
 	size_t position = 0;
 	std::vector<std::string> lines = Utils::splitString(configString, "\n");
 	
-    for (size_t i = 0; i < lines.size(); ++i) {
+	for (size_t i = 0; i < lines.size(); ++i) {
 		position = configString.find(lines[i], position + 1);
 		std::string line = Utils::removeSemicolon(Utils::removeWSpaces(lines[i]));
 		std::vector<std::string> strs = Utils::splitString(line, " ");
@@ -148,7 +148,7 @@ void Location::parseConfig(const std::string& configString) {
 		}
 		else
 			this->parseLine(strs);
-    }
+	}
 }
 
 void Location::addMethod(const std::string& method)
