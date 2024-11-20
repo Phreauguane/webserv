@@ -75,7 +75,7 @@ bool Client::sendResponse()
 	Response rep = _reps[0];
 	std::string content = rep.build();
 	Logger::log("Sending response", DEBUG);
-	//Logger::log(rep.build(), TEXT);
+	Logger::log(rep.build(), TEXT);
 	ssize_t len = content.size();
 	ssize_t sent = send(_fd, content.c_str(), len, MSG_NOSIGNAL);
 	if (sent == len)

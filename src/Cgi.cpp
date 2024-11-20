@@ -114,8 +114,9 @@ Response parseOutputPHP(std::string& output)
 	Response rep;
 
 	rep.http = "HTTP/1.1";
-	rep.attributes["Content-Type"] = extractAfterPrefix(output, "Content-type: ");
-	rep.status = 200;  // si code erreur renvoyer 500  page erreur log erreur dans le terminal  fonction error_pages
+	rep.attributes["Location"] = Utils::removeWSpaces(extractAfterPrefix(output, "Location: "));
+	rep.attributes["Content-Type"] = Utils::removeWSpaces(extractAfterPrefix(output, "Content-type: "));
+	rep.status =  std::atoi(Utils::removeWSpaces(extractAfterPrefix(output, "Status: ")).c_str());  // si code erreur renvoyer 500  page erreur log erreur dans le terminal  fonction error_pages
 	rep.phrase = "OK";
 	rep.body = removeHeader(output);
 	rep.ready = true;
