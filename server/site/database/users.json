@@ -2,5 +2,9 @@
     "miaou": {
         "password": "$2y$10$eRLNYPE8GwLJbpE7htNs\/.SArahs16l\/b9CXAXwfy0nGT78BRtPgG",
         "created_at": "2024-11-20 14:59:39"
+    },
+    "test": {
+        "password": "$2y$10$J3UnJ6Cx4tPqXzCiGGNSWODQVO0hXpBS223f.UXNRbMYeCQm3LiIm",
+        "created_at": "2024-11-20 18:29:53"
     }
 }

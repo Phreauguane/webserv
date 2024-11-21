@@ -1,10 +1,9 @@
 #include "Utils.h"
 #include "Cgi.h"
 
-CGI::CGI()
-{
-	_stdout = dup(STDOUT_FILENO);
-}
+CGI::CGI() : _stdout(dup(STDOUT_FILENO)), _server(NULL) {}
+
+CGI::CGI(ISessionManager& server) : _stdout(dup(STDOUT_FILENO)), _server(&server) {}
 
 CGI::CGI(const CGI& copy)
 {
@@ -20,6 +19,7 @@ CGI& CGI::operator=(const CGI& copy)
 {
 	_stdout = copy._stdout;
 	_env = copy._env;
+	_server = copy._server;
 	return *this;
 }
 
@@ -108,38 +108,35 @@ std::string removeHeader(const std::string& input)
 	return result;
 }
 
-Response parseOutputPHP(std::string& output)
+Response CGI::_parseOutputPHP(std::string& output, Request& req)
 {
-	// TO DO
 	Response rep;
 
 	rep.http = "HTTP/1.1";
 	rep.attributes["Location"] = Utils::removeWSpaces(extractAfterPrefix(output, "Location: "));
 	rep.attributes["Content-Type"] = Utils::removeWSpaces(extractAfterPrefix(output, "Content-type: "));
-	rep.status =  std::atoi(Utils::removeWSpaces(extractAfterPrefix(output, "Status: ")).c_str());  // si code erreur renvoyer 500  page erreur log erreur dans le terminal  fonction error_pages
+	rep.status = std::atoi(Utils::removeWSpaces(extractAfterPrefix(output, "Status: ")).c_str());
 	rep.phrase = "OK";
 	rep.body = removeHeader(output);
 	rep.ready = true;
+
+	_handlePHPSession(req, rep);
 	return rep;
 }
 
-Response handleParentProcessPHP(int* pipefd, pid_t pid)
+Response handleParentProcessPHP(int* pipefd, pid_t pid, CGI* cgi, Request& req)
 {
-	close(pipefd[1]); // Fermer le côté écriture du pipe
-
+	close(pipefd[1]);
 	std::string result = Utils::readFD(pipefd[0]);
 	close(pipefd[0]);
 
 	Logger::log(result, TEXT);
 	
-	// Attendre la fin du processus enfant
 	int status;
 	waitpid(pid, &status, 0);
 	if (WIFEXITED(status))
-		Logger::log("Child process code : " + Utils::toString(WEXITSTATUS(status)), DEBUG);
-	return parseOutputPHP(result);
-
-	// Parse output of the php process, return Response instead of string.
+			Logger::log("Child process code : " + Utils::toString(WEXITSTATUS(status)), DEBUG);
+	return cgi->_parseOutputPHP(result, req);
 }
 
 std::string CGI::_getQuery(const Request& req)
@@ -189,17 +186,38 @@ std::string CGI::_getExec(std::string cmd)
 
 Response CGI::_execPHP(const std::string& path, Request& req)
 {
-	// a aller chercher dans envp
-	std::string php_cgi = _getExec("php-cgi"); // Chemin vers l'interpréteur PHP
-
-	// Arguments pour execve
+	std::string php_cgi = _getExec("php-cgi");
 	char *args[] = {(char*)php_cgi.c_str(), (char*)path.c_str(), NULL};
 
-	// Variables d'environnement
+	// Récupérer la session depuis le serveur
+	std::string session_id = "";
+	Session* session = NULL;
+	
+	if (req.attributes.find("Cookie") != req.attributes.end())
+	{
+		std::string cookies = req.attributes["Cookie"];
+		size_t pos = cookies.find("PHPSESSID=");
+		if (pos != std::string::npos)
+		{
+			pos += 10;
+			size_t end = cookies.find(";", pos);
+			session_id = cookies.substr(pos, end - pos);
+			// Récupérer la session depuis le serveur
+			if (_server && _server->hasSession(session_id))
+				session = _server->getSession(session_id);
+		}
+	}
+
+	// Préparer les variables de session pour PHP
+	std::string session_data = "";
+	if (session && session->hasKey("user_id"))
+		session_data = "PHP_SESSION_VARS={\"user_id\":\"" + session->getValue("user_id") + "\"}";
+
 	std::string request_method = "REQUEST_METHOD=" + req.method;
 	std::string content_type = "CONTENT_TYPE=" + req.attributes["Content-Type"];
 	std::string content_length = "CONTENT_LENGTH=" + Utils::toString(req.body.size());
 	std::string script_filename = "SCRIPT_FILENAME=" + path;
+	std::string session_env = "HTTP_COOKIE=PHPSESSID=" + session_id;
 
 	char* envp[] = {
 		(char*)request_method.c_str(),
@@ -207,6 +225,8 @@ Response CGI::_execPHP(const std::string& path, Request& req)
 		(char*)content_type.c_str(),
 		(char*)script_filename.c_str(),
 		(char*)"REDIRECT_STATUS=200",
+		(char*)session_env.c_str(),
+		session_data.empty() ? NULL : (char*)session_data.c_str(),
 		NULL
 	};
 
@@ -222,9 +242,7 @@ Response CGI::_execPHP(const std::string& path, Request& req)
 	else if (pid == 0)
 	{
 		try
-		{
 			_executeCommand(php_cgi, _getQuery(req), args, envp, pipefd);
-		}
 		catch(const std::runtime_error& e)
 		{
 			Logger::log(e.what(), ERROR);
@@ -232,7 +250,7 @@ Response CGI::_execPHP(const std::string& path, Request& req)
 		}
 	}
 	else
-		return handleParentProcessPHP(pipefd, pid);
+		return handleParentProcessPHP(pipefd, pid, this, req);
 	Response rep;
 	return rep;
 }
@@ -266,4 +284,27 @@ bool CGI::executeCGI(Request &req, const std::string &path, Location *loc, Respo
 		return false;
 	}
 	return true;
+}
+
+void CGI::_handlePHPSession(Request& req, Response& rep)
+{
+	std::string session_id = "";
+	if (req.attributes.find("Cookie") != req.attributes.end())
+	{
+		std::string cookies = req.attributes["Cookie"];
+		size_t pos = cookies.find("PHPSESSID=");
+		if (pos != std::string::npos)
+		{
+			pos += 10;
+			size_t end = cookies.find(";", pos);
+			session_id = cookies.substr(pos, end - pos);
+		}
+	}
+
+	// Ajouter le cookie de session à la réponse si nécessaire
+	if (session_id.empty())
+	{
+		session_id = Utils::generateRandomString(32);
+		rep.attributes["Set-Cookie"] = "PHPSESSID=" + session_id + "; Path=/";
+	}
 }

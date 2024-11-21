@@ -252,3 +252,18 @@ bool Utils::uploadFiles(std::string files, std::string path, std::string fileNam
 	file.close(); // Fermer le fichier
 	return 0;
 }
+
+std::string Utils::generateRandomString(size_t length)
+{
+	static const char alphanum[] =
+		"0123456789"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"abcdefghijklmnopqrstuvwxyz";
+	std::string result;
+	result.reserve(length);
+
+	srand(time(NULL));
+	for (size_t i = 0; i < length; ++i)
+		result += alphanum[rand() % (sizeof(alphanum) - 1)];
+	return result;
+}

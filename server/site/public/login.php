@@ -12,7 +12,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['last_login'] = time();
         
         // Définir un cookie pour se souvenir de l'utilisateur
-        if (isset($_POST['remember']) && $_POST['remember'] == 'on') {
+        if (isset($_POST['remember']) && $_POST['remember'] == 'on')
+        {
             setcookie('remember_user', $username, time() + (86400 * 30), "/"); // 30 jours
         }
         

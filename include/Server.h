@@ -5,6 +5,8 @@
 #include "Request.h"
 #include "Response.h"
 #include "Cgi.h"
+#include "Session.h"
+#include "ISessionManager.h"
 
 enum req_type
 {
@@ -13,7 +15,7 @@ enum req_type
 	T_NFD
 };
 
-class Server
+class Server : public ISessionManager
 {
 public:
 	Server();
@@ -28,6 +30,8 @@ public:
 	size_t getMaxBodySize();
 	void printDetails() const;
 	~Server();
+	virtual bool hasSession(const std::string& sessionId);
+	virtual Session* getSession(const std::string& sessionId);
 private:
 	Response _get(const Request&);
 	Response _post(const Request&);
@@ -42,6 +46,9 @@ private:
 	void _setupServAddr();
 	void _loadTypes();
 	Location *_getLocation(const std::string&);
+	void _handleSession(Request& req, Response& rep);
+	std::string _generateSessionId();
+	void _cleanExpiredSessions();
 private:
 	char **_env;
 	CGI cgiHandler;
@@ -54,4 +61,5 @@ private:
 	std::map<unsigned int, std::string> _error_pages;
 	std::map<std::string, std::string> _types;
 	unsigned int _max_body_size;
+	std::map<std::string, Session*> _sessions;
 };

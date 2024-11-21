@@ -26,4 +26,5 @@ namespace Utils
 	}
 	std::string getExt(const std::string&);
 	bool uploadFiles(std::string files, std::string path, std::string fileName);
+	std::string generateRandomString(size_t length);
 }

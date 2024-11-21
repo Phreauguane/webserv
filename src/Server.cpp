@@ -74,6 +74,7 @@ void Server::_parseSource(const std::string& source)
 Server::Server(const std::string& source, char **env)
 {
 	_env = env;
+	cgiHandler = CGI(*this);
 	cgiHandler.setup(_env);
 	_root_loc = new Location(_env);
 	_parseSource(source);
@@ -277,11 +278,15 @@ Location *Server::_getLocation(const std::string& path)
 Response Server::executeRequest(Request& req)
 {
 	Response rep;
-
-	// Recupere la location visee par la requete
+	
+	// Gérer la session avant d'exécuter la requête
+	_handleSession(req, rep);
+	
+	// Récupérer la location visée par la requête
 	Location *loc = _getLocation(req.path);
 	std::string path = _findResourcePath(req, loc);
-	// Tente d'executer le CGI
+	
+	// Tenter d'exécuter le CGI
 	if (cgiHandler.executeCGI(req, path, loc, rep))
 		return rep;
 	Logger::log("Not CGI, running methods...", DEBUG);
@@ -526,4 +531,75 @@ Server::~Server()
 		close(_sockfd);
 	if (_root_loc)
 		delete _root_loc;
+}
+
+void Server::_handleSession(Request& req, Response& rep)
+{
+	// Nettoyer les sessions expirées
+	_cleanExpiredSessions();
+
+	// Chercher le cookie de session
+	std::string sessionId = "";
+	bool hasCookie = false;
+	if (req.attributes.find("Cookie") != req.attributes.end())
+	{
+		std::string cookies = req.attributes["Cookie"];
+		size_t pos = cookies.find("PHPSESSID=");
+		if (pos != std::string::npos)
+		{
+			pos += 10; // Longueur de "PHPSESSID="
+			size_t end = cookies.find(";", pos);
+			sessionId = cookies.substr(pos, end - pos);
+			hasCookie = true;
+		}
+	}
+
+	// Créer ou récupérer la session
+	Session* session;
+	if (sessionId.empty() || _sessions.find(sessionId) == _sessions.end())
+	{
+		session = new Session();
+		_sessions[session->getId()] = session;
+		// Set cookie seulement si aucun cookie n'existe déjà
+		if (!hasCookie)
+			rep.attributes["Set-Cookie"] = "PHPSESSID=" + session->getId() + "; Path=/";
+	}
+	else
+	{
+		session = _sessions[sessionId];
+		session->refresh();
+	}
+}
+
+void Server::_cleanExpiredSessions()
+{
+	std::vector<std::string> expiredIds;
+	
+	std::map<std::string, Session*>::iterator it = _sessions.begin();
+	while (it != _sessions.end())
+	{
+		if (it->second->isExpired()) {
+			expiredIds.push_back(it->first);
+			delete it->second;
+		}
+		++it;
+	}
+	
+	for (std::vector<std::string>::iterator id = expiredIds.begin(); 
+		 id != expiredIds.end(); ++id)
+	{
+		_sessions.erase(*id);
+	}
+}
+
+bool Server::hasSession(const std::string& sessionId)
+{
+	return _sessions.find(sessionId) != _sessions.end();
+}
+
+Session* Server::getSession(const std::string& sessionId)
+{
+	if (hasSession(sessionId))
+		return _sessions[sessionId];
+	return NULL;
 }
