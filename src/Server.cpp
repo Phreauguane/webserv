@@ -6,7 +6,7 @@ Server::Server()
 	//
 }
 
-Server::Server(const Server& copy)
+Server::Server(const Server& copy) : ISessionManager(copy)
 {
 	*this = copy;
 }

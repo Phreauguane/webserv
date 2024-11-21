@@ -18,7 +18,8 @@ SRC		=	main.cpp			\
 			src/Request.cpp		\
 			src/Response.cpp	\
 			src/Cgi.cpp			\
-			src/Session.cpp
+			src/Session.cpp		\
+			src/ISessionManager.cpp
 
 all		:
 	$(CPP) -I $(INCLUDE) $(DEBUG_MODE) $(SRC) -o $(NAME)

@@ -242,7 +242,9 @@ Response CGI::_execPHP(const std::string& path, Request& req)
 	else if (pid == 0)
 	{
 		try
+		{
 			_executeCommand(php_cgi, _getQuery(req), args, envp, pipefd);
+		}
 		catch(const std::runtime_error& e)
 		{
 			Logger::log(e.what(), ERROR);
