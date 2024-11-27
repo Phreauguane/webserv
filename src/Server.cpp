@@ -287,26 +287,35 @@ Response Server::executeRequest(Request& req)
 	std::string path = _findResourcePath(req, loc);
 	
 	// Tenter d'exécuter le CGI
-	if (cgiHandler.executeCGI(req, path, loc, rep))
+	if (req.method == "DELETE")
+		return _delete(req);
+	else if (cgiHandler.executeCGI(req, path, loc, rep))
 		return rep;
 	Logger::log("Not CGI, running methods...", DEBUG);
 	if (req.method == "GET")
 		return _get(req);
 	if (req.method == "POST")
 		return _post(req);
-	if (req.method == "DELETE")
-		return _delete(req);
 	throw std::runtime_error("Unable to execute request");
 }
 
 req_type Server::_getType(const std::string& path)
 {
+	// Supprimer les paramètres GET de l'URL pour la vérification du type
+	std::string clean_path = path;
+	size_t pos = clean_path.find("?");
+	if (pos != std::string::npos) {
+		clean_path = clean_path.substr(0, pos);
+	}
+
 	struct stat path_stat;
-	if (stat(path.c_str(), &path_stat) != 0)
+	if (stat(clean_path.c_str(), &path_stat) != 0)
 		return T_NFD;
 	if (S_ISDIR(path_stat.st_mode))
 		return T_DIR;
-	return T_FILE;
+	if (S_ISREG(path_stat.st_mode))
+		return T_FILE;
+	return T_NFD;
 }
 
 std::string Server::_findResourcePath(const Request &req, Location *loc)
@@ -390,21 +399,69 @@ Response Server::_post(const Request& req)
 		Logger::log("Method POST not allowed", ERROR);	
 		return rep;
 	}
-	if (req.request.find(" /upload "))
-	{
-		rep.ready = true;
-		Utils::uploadFiles(req.files, "server", extractFilename(req.body));
-	}
 	std::string path = _findResourcePath(req, loc);
 	Logger::log("path : " + path, DEBUG);
 	// TO IMPLEMENT
 	return rep;
 }
 
-Response Server::_delete(const Request& req)
+Response Server::_delete(Request& req)
 {
-	(void)req;
 	Response rep;
+	Location *loc = _getLocation(req.path);
+	std::string path = _findResourcePath(req, loc);
+	std::string method = "DELETE";
+	Logger::log("DELETE on location : " + loc->getName(), DEBUG);
+	if (!Utils::searchFor(loc->_allowed_methods, method))
+	{
+		Logger::log("Method DELETE not allowed", ERROR);	
+		return rep;
+	}
+
+	Logger::log("Trying to delete file: " + path, DEBUG);
+
+	// Vérifier si le fichier existe
+	if (!Utils::fileExists(path))
+	{
+		Logger::log("File not found: " + path, ERROR);
+		rep.http = "HTTP/1.1";
+		rep.status = 404;
+		rep.phrase = "Not Found";
+		rep.body = "File not found";
+		
+		rep.ready = true;
+		return rep;
+	}
+
+	// Vérifier les permissions
+	if (access(path.c_str(), W_OK) != 0)
+	{
+		rep.http = "HTTP/1.1";
+		rep.status = 403;
+		rep.phrase = "Forbidden";
+		rep.body = "Permission denied";
+		rep.ready = true;
+		return rep;
+	}
+
+	// Tenter de supprimer le fichier
+	if (remove(path.c_str()) != 0)
+	{
+		rep.http = "HTTP/1.1";
+		rep.status = 500;
+		rep.phrase = "Internal Server Error";
+		rep.body = "Failed to delete file";
+		rep.ready = true;
+		return rep;
+	}
+
+	// Succès
+	rep.http = "HTTP/1.1";
+	rep.status = 200;
+	rep.phrase = "OK";
+	rep.body = "{\"status\": \"success\", \"message\": \"File deleted successfully\"}";
+	rep.attributes["Content-Type"] = "application/json";
+	rep.ready = true;
 	return rep;
 }
 
@@ -527,6 +584,13 @@ size_t Server::getMaxBodySize()
 
 Server::~Server()
 {
+	// Nettoyer toutes les sessions
+	for (std::map<std::string, Session*>::iterator it = _sessions.begin(); 
+		 it != _sessions.end(); ++it) {
+		delete it->second;
+	}
+	_sessions.clear();
+	
 	if (_ready)
 		close(_sockfd);
 	if (_root_loc)
@@ -573,22 +637,16 @@ void Server::_handleSession(Request& req, Response& rep)
 
 void Server::_cleanExpiredSessions()
 {
-	std::vector<std::string> expiredIds;
-	
 	std::map<std::string, Session*>::iterator it = _sessions.begin();
 	while (it != _sessions.end())
 	{
 		if (it->second->isExpired()) {
-			expiredIds.push_back(it->first);
 			delete it->second;
+			_sessions.erase(it++);
 		}
-		++it;
-	}
-	
-	for (std::vector<std::string>::iterator id = expiredIds.begin(); 
-		 id != expiredIds.end(); ++id)
-	{
-		_sessions.erase(*id);
+		else {
+			++it;
+		}
 	}
 }
 
@@ -602,4 +660,14 @@ Session* Server::getSession(const std::string& sessionId)
 	if (hasSession(sessionId))
 		return _sessions[sessionId];
 	return NULL;
+}
+
+std::string Server::_getPath(Request& req)
+{
+	std::string path = req.path;
+	if (path.find("?") != std::string::npos)
+		path = path.substr(0, path.find("?"));
+	if (path[0] == '/')
+		path = path.substr(1);
+	return path;
 }

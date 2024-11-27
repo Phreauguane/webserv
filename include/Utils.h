@@ -1,6 +1,7 @@
 #pragma once
 
 #include "webserv.h"
+#include <sys/stat.h>
 
 #define WIDTH(x) std::cout.width(x)
 
@@ -27,4 +28,5 @@ namespace Utils
 	std::string getExt(const std::string&);
 	bool uploadFiles(std::string files, std::string path, std::string fileName);
 	std::string generateRandomString(size_t length);
+	bool fileExists(const std::string& path);
 }

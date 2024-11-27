@@ -35,7 +35,7 @@ public:
 private:
 	Response _get(const Request&);
 	Response _post(const Request&);
-	Response _delete(const Request&);
+	Response _delete(Request&);
 	Response _readFile(const Request&, const std::string&);
 	Response _autoIndex(const std::string&);
 	Response _errorPage(unsigned int);
@@ -49,6 +49,7 @@ private:
 	void _handleSession(Request& req, Response& rep);
 	std::string _generateSessionId();
 	void _cleanExpiredSessions();
+	std::string _getPath(Request& req);
 private:
 	char **_env;
 	CGI cgiHandler;

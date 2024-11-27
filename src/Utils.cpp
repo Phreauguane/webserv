@@ -231,27 +231,27 @@ std::string Utils::getExt(const std::string &str)
 	return str.substr(pos, size);
 }
 
-bool Utils::uploadFiles(std::string files, std::string path, std::string fileName)
-{
-	// Construire le chemin complet du fichier
-	std::string fullPath = path + "/upload/" + fileName;
-	// Créer et ouvrir le fichier dans le dossier spécifié
-	std::ofstream file;
+// bool Utils::uploadFiles(std::string files, std::string path, std::string fileName)
+// {
+// 	// Construire le chemin complet du fichier
+// 	std::string fullPath = path + "/upload/" + fileName;
+// 	// Créer et ouvrir le fichier dans le dossier spécifié
+// 	std::ofstream file;
 
-	file.open(fullPath.c_str(), std::ios::out);
-	if (!file)
-	{
-		Logger::log("FAIL UPLOAD on location : " + fullPath, DEBUG);
-		return false;
-	}
-	else
-	{
-		file << files;
-		Logger::log("UPLOAD on location : " + fullPath, DEBUG);
-	}
-	file.close(); // Fermer le fichier
-	return 0;
-}
+// 	file.open(fullPath.c_str(), std::ios::out);
+// 	if (!file)
+// 	{
+// 		Logger::log("FAIL UPLOAD on location : " + fullPath, DEBUG);
+// 		return false;
+// 	}
+// 	else
+// 	{
+// 		file << files;
+// 		Logger::log("UPLOAD on location : " + fullPath, DEBUG);
+// 	}
+// 	file.close(); // Fermer le fichier
+// 	return 0;
+// }
 
 std::string Utils::generateRandomString(size_t length)
 {
@@ -266,4 +266,10 @@ std::string Utils::generateRandomString(size_t length)
 	for (size_t i = 0; i < length; ++i)
 		result += alphanum[rand() % (sizeof(alphanum) - 1)];
 	return result;
+}
+
+bool Utils::fileExists(const std::string& path)
+{
+    struct stat buffer;
+    return (stat(path.c_str(), &buffer) == 0);
 }

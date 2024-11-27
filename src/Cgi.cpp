@@ -57,6 +57,7 @@ void CGI::_executeCommand(const std::string& cmd, const std::string& query, char
 	if (query.size() > 0)
 		write(pipe_stdin[1], query.c_str(), query.size()); // Envoyer les données POST
 	close(pipe_stdin[1]);
+	Logger::log("query : " + query, DEBUG);
 	execve(cmd.c_str(), args, envp); // Exécuter PHP CGI
 	_restoreStdOut();
 	throw std::runtime_error("Unkown command : " + cmd);
@@ -130,7 +131,7 @@ Response handleParentProcessPHP(int* pipefd, pid_t pid, CGI* cgi, Request& req)
 	std::string result = Utils::readFD(pipefd[0]);
 	close(pipefd[0]);
 
-	Logger::log(result, TEXT);
+	//Logger::log(result, TEXT);
 	
 	int status;
 	waitpid(pid, &status, 0);
@@ -141,17 +142,59 @@ Response handleParentProcessPHP(int* pipefd, pid_t pid, CGI* cgi, Request& req)
 
 std::string CGI::_getQuery(const Request& req)
 {
-	Logger::log("METHODE : " + req.method, DEBUG);
-	if (req.method == "POST")
+	if (req.method == "POST") {
+		std::map<std::string, std::string>::const_iterator it = req.attributes.find("Content-Type");
+		if (it != req.attributes.end() && it->second.find("multipart/form-data") != std::string::npos) {
+			try {
+				std::string contentType = it->second;
+				std::string boundary = contentType.substr(contentType.find("boundary=") + 9);
+				
+				// Extraire le nom du fichier
+				std::string filename = "unknown";
+				size_t filenamePos = req.request.find("filename=\"");
+				if (filenamePos != std::string::npos) {
+					filenamePos += 10;
+					size_t filenameEnd = req.request.find("\"", filenamePos);
+					if (filenameEnd != std::string::npos) {
+						filename = req.request.substr(filenamePos, filenameEnd - filenamePos);
+					}
+				}
+				
+				// Pré-calculer la taille totale nécessaire
+				size_t totalSize = 0;
+				std::string header = "--" + boundary + "\r\n";
+				header += "Content-Disposition: form-data; name=\"fichier\"; filename=\"" + filename + "\"\r\n";
+				header += "Content-Type: " + contentType + "\r\n\r\n";
+				std::string footer = "\r\n--" + boundary + "--\r\n";
+				
+				totalSize = header.size() + req.body.size() + footer.size();
+				
+				// Réserver la mémoire nécessaire
+				std::vector<char> body;
+				body.reserve(totalSize);
+				
+				// Construire le corps de la requête
+				body.insert(body.end(), header.begin(), header.end());
+				body.insert(body.end(), req.body.begin(), req.body.end());
+				body.insert(body.end(), footer.begin(), footer.end());
+				
+				return std::string(body.begin(), body.end());
+			}
+			catch (const std::exception& e) {
+				Logger::log("Error in _getQuery: " + std::string(e.what()), ERROR);
+				return "";
+			}
+		}
 		return req.body;
-	if (req.method != "GET")
-		return "Wallah jsais pas";
-
-	size_t pos = req.path.find("?");
-	if (pos == std::string::npos)
-		return "";
+	}
 	
-	return req.path.substr(pos + 1, req.path.size() - pos - 1);
+	if (req.method == "GET") {
+		size_t pos = req.path.find("?");
+		if (pos != std::string::npos) {
+			return req.path.substr(pos + 1);
+		}
+	}
+	return "";
 }
 
 static std::string get_paths(char **envp)
@@ -188,6 +231,7 @@ Response CGI::_execPHP(const std::string& path, Request& req)
 {
 	std::string php_cgi = _getExec("php-cgi");
 	char *args[] = {(char*)php_cgi.c_str(), (char*)path.c_str(), NULL};
+	Logger::log("path : " + std::string(args[0]), DEBUG);
 
 	// Récupérer la session depuis le serveur
 	std::string session_id = "";
@@ -208,24 +252,46 @@ Response CGI::_execPHP(const std::string& path, Request& req)
 		}
 	}
 
+	// Préparer la query et calculer sa taille
+	std::string query = _getQuery(req);
+	
+	// Variables d'environnement pour l'upload
+	std::string request_method = "REQUEST_METHOD=" + req.method;
+	std::string content_type = "CONTENT_TYPE=" + req.attributes["Content-Type"];
+	// Utiliser la taille de la query au lieu de req.body.size()
+	std::string content_length = "CONTENT_LENGTH=" + Utils::toString(query.length());
+	std::string script_filename = "SCRIPT_FILENAME=" + path;
+	std::string session_env = "HTTP_COOKIE=PHPSESSID=" + session_id;
+	std::string upload_tmp_dir = "UPLOAD_TMP_DIR=/tmp";
+	std::string gateway_interface = "GATEWAY_INTERFACE=CGI/1.1";
+	std::string server_protocol = "SERVER_PROTOCOL=HTTP/1.1";
+	std::string document_root = "DOCUMENT_ROOT=" + path.substr(0, path.find_last_of("/"));
+	std::string script_name = "SCRIPT_NAME=" + path.substr(path.find_last_of("/"));
+	std::string query_string = "QUERY_STRING=" + query;
+
+	// Log des informations importantes
+	Logger::log("Content-Length original: " + Utils::toString(req.body.size()), DEBUG);
+	Logger::log("Content-Length final: " + Utils::toString(query.length()), DEBUG);
+	Logger::log("Upload tmp dir: " + upload_tmp_dir, DEBUG);
+
 	// Préparer les variables de session pour PHP
 	std::string session_data = "";
 	if (session && session->hasKey("user_id"))
 		session_data = "PHP_SESSION_VARS={\"user_id\":\"" + session->getValue("user_id") + "\"}";
-
-	std::string request_method = "REQUEST_METHOD=" + req.method;
-	std::string content_type = "CONTENT_TYPE=" + req.attributes["Content-Type"];
-	std::string content_length = "CONTENT_LENGTH=" + Utils::toString(req.body.size());
-	std::string script_filename = "SCRIPT_FILENAME=" + path;
-	std::string session_env = "HTTP_COOKIE=PHPSESSID=" + session_id;
 
 	char* envp[] = {
 		(char*)request_method.c_str(),
 		(char*)content_length.c_str(),
 		(char*)content_type.c_str(),
 		(char*)script_filename.c_str(),
+		(char*)document_root.c_str(),
+		(char*)script_name.c_str(),
 		(char*)"REDIRECT_STATUS=200",
 		(char*)session_env.c_str(),
+		(char*)upload_tmp_dir.c_str(),
+		(char*)gateway_interface.c_str(),
+		(char*)server_protocol.c_str(),
+		(char*)query_string.c_str(),
 		session_data.empty() ? NULL : (char*)session_data.c_str(),
 		NULL
 	};
@@ -243,7 +309,7 @@ Response CGI::_execPHP(const std::string& path, Request& req)
 	{
 		try
 		{
-			_executeCommand(php_cgi, _getQuery(req), args, envp, pipefd);
+			_executeCommand(php_cgi, query, args, envp, pipefd);
 		}
 		catch(const std::runtime_error& e)
 		{
@@ -257,13 +323,129 @@ Response CGI::_execPHP(const std::string& path, Request& req)
 	return rep;
 }
 
+Response CGI::_execPython(const std::string& path, Request& req)
+{
+	// Nettoyer le chemin du script en retirant les paramètres GET
+	std::string clean_path = path;
+	size_t pos = clean_path.find("?");
+	if (pos != std::string::npos) {
+		clean_path = clean_path.substr(0, pos);
+	}
+
+	std::string python_exec = _getExec("python3");
+	char *args[] = {(char*)python_exec.c_str(), (char*)clean_path.c_str(), NULL};
+	
+	std::string query = _getQuery(req);
+	std::string request_method = "REQUEST_METHOD=" + req.method;
+	std::string content_type = "CONTENT_TYPE=" + req.attributes["Content-Type"];
+	std::string content_length = "CONTENT_LENGTH=" + Utils::toString(query.length());
+	std::string script_filename = "SCRIPT_FILENAME=" + clean_path;
+	std::string gateway_interface = "GATEWAY_INTERFACE=CGI/1.1";
+	std::string server_protocol = "SERVER_PROTOCOL=HTTP/1.1";
+	std::string query_string = "QUERY_STRING=" + query;
+
+	char* envp[] = {
+		(char*)request_method.c_str(),
+		(char*)content_length.c_str(),
+		(char*)content_type.c_str(),
+		(char*)script_filename.c_str(),
+		(char*)gateway_interface.c_str(),
+		(char*)server_protocol.c_str(),
+		(char*)query_string.c_str(),
+		NULL
+	};
+
+	int* pipefd = createPipes();
+	if (pipefd == NULL)
+		throw std::runtime_error("Unable to create pipe");
+
+	pid_t pid = fork();
+	if (pid < 0)
+		throw std::runtime_error("Unable to fork");
+	else if (pid == 0)
+	{
+		try
+		{
+			_executeCommand(python_exec, query, args, envp, pipefd);
+		}
+		catch(const std::runtime_error& e)
+		{
+			Logger::log(e.what(), ERROR);
+			exit(EXIT_FAILURE);
+		}
+	}
+	else
+		return handleParentProcessPHP(pipefd, pid, this, req);
+	Response rep;
+	return rep;
+}
+
+std::string CGI::_compileCProgram(const std::string& path)
+{
+	std::string output = path + ".out";
+	std::string gcc = _getExec("gcc");
+	
+	std::string compile_cmd = gcc + " " + path + " -o " + output;
+	if (system(compile_cmd.c_str()) != 0)
+		throw std::runtime_error("Failed to compile C program");
+	
+	return output;
+}
+
+Response CGI::_execC(const std::string& path, Request& req)
+{
+	// Nettoyer le chemin du fichier en retirant les paramètres GET
+	std::string clean_path = path;
+	size_t pos = clean_path.find("?");
+	
+
+	int* pipefd = createPipes();
+	if (pipefd == NULL)
+		throw std::runtime_error("Unable to create pipe");
+
+	pid_t pid = fork();
+	if (pid < 0)
+		throw std::runtime_error("Unable to fork");
+	else if (pid == 0)
+	{
+		try
+		{
+			_executeCommand(executable, query, args, envp, pipefd);
+		}
+		catch(const std::runtime_error& e)
+		{
+			Logger::log(e.what(), ERROR);
+			exit(EXIT_FAILURE);
+		}
+	}
+	else
+	{
+		Response rep = handleParentProcessPHP(pipefd, pid, this, req);
+		remove(executable.c_str()); // Supprimer l'exécutable après utilisation
+		return rep;
+	}
+	Response rep;
+	return rep;
+}
+
 bool CGI::executeCGI(Request &req, const std::string &path, Location *loc, Response &rep)
 {
-	// verifier que l'extension soit autorisee
 	bool allowed = false;
-	std::string ext = Utils::getExt(req.path);
-	if (ext == "")
+	std::string clean_path = req.path;
+	size_t pos = clean_path.find("?");
+	if (pos != std::string::npos) {
+		clean_path = clean_path.substr(0, pos);
+	}
+
+	std::string ext = "";
+	size_t dot_pos = clean_path.find_last_of(".");
+	if (dot_pos != std::string::npos) {
+		ext = clean_path.substr(dot_pos);  // Inclut le point
+	}
+	
+	if (ext.empty())
 		return false;
+
 	for (size_t i = 0; i < loc->_cgi_exts.size(); ++i)
 	{
 		if (ext == loc->_cgi_exts[i])
@@ -272,17 +454,27 @@ bool CGI::executeCGI(Request &req, const std::string &path, Location *loc, Respo
 			break;
 		}
 	}
-	Logger::log("Not allowed :" + ext, DEBUG);
 	if (!allowed)
 		return false;
+
 	if (ext == ".php")
 	{
 		Logger::log("Running php...", DEBUG);
 		rep = _execPHP(path, req);
 	}
+	else if (ext == ".py")
+	{
+		Logger::log("Running python...", DEBUG);
+		rep = _execPython(path, req);
+	}
+	else if (ext == ".c")
+	{
+		Logger::log("Running C program...", DEBUG);
+		rep = _execC(path, req);
+	}
 	else
 	{
-		Logger::log("Unkown ext : " + ext, DEBUG);
+		Logger::log("Unknown ext : " + ext, DEBUG);
 		return false;
 	}
 	return true;

@@ -24,6 +24,8 @@ function isLoggedIn() {
                     <li><a href="/site/private/dashboard.php">Dashboard</a></li>
                     <li><a href="/site/private/profile.php">Profil</a></li>
                     <li><a href="/site/public/logout.php">Déconnexion</a></li>
+                    <li><a href="/site/private/drive.php">Drive</a></li>
+                    <li><a href="/site/private/upload.php">Upload</a></li>
                 <?php else: ?>
                     <li><a href="/site/public/login.php">Connexion</a></li>
                     <li><a href="/site/public/register.php">Inscription</a></li>

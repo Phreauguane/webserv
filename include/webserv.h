@@ -28,6 +28,7 @@
 #include <algorithm>
 
 #define MAX_EVENTS 512
+#define BUFFER_SIZE 30720
 
 #ifndef LOG_LEVEL
 # define LOG_LEVEL INFO

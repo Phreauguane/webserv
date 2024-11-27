@@ -1,12 +1,14 @@
 #include "Client.h"
 
-Client::Client() : _req(NULL) {}
+Client::Client() : _server(NULL), _request(NULL), _fd(-1), _size(0) {}
 
-Client::Client(const Client& copy) : _req(NULL) { *this = copy; }
-
-Client::Client(Server *server) : _req(NULL)
+Client::Client(const Client& copy) : _request(NULL)
 {
-	_server = server;
+	*this = copy;
+}
+
+Client::Client(Server *server) : _server(server), _request(NULL), _fd(-1), _size(0)
+{
 	_fd = accept(_server->getSockFd(), NULL, NULL);
 	if (_fd < 0)
 		throw std::runtime_error("Failed to accept connection to " + _server->getIp());
@@ -16,9 +18,13 @@ Client::Client(Server *server) : _req(NULL)
 
 Client::~Client()
 {
-	if (_req)
-		delete _req;
-	close(_fd);
+	if (_request)
+	{
+		delete _request;
+		_request = NULL;
+	}
+	if (_fd >= 0)
+		close(_fd);
 }
 
 Client& Client::operator=(const Client& copy)
@@ -26,8 +32,12 @@ Client& Client::operator=(const Client& copy)
 	if (this == &copy)
 		return *this;
 	_server = copy._server;
-	_request = copy._request;
+	if (_request)
+		delete _request;
+	_request = copy._request ? new Request(*copy._request) : NULL;
 	_fd = copy._fd;
+	_size = copy._size;
+	_reps = copy._reps;
 	return *this;
 }
 
@@ -38,28 +48,33 @@ int Client::getFd()
 
 bool Client::readRequest()
 {
-	char buffer[_size];
-	std::memset(buffer, 0, _size);
-
-	int rd = read(_fd, buffer, _size);
-	if (rd < 0)
-		throw std::runtime_error("Failed to read request to server " + _server->getIp());
-	if (rd == 0)
+	char buffer[BUFFER_SIZE + 1];
+	ssize_t bytes = recv(_fd, buffer, BUFFER_SIZE, 0);
+	
+	if (bytes <= 0)
 		return false;
-	_request.clear();
-	_request = buffer;
-	if (_req)
-		delete _req;
-	_req = new Request(_request);
-
-	try
-	{
-		_reps.push_back(_server->executeRequest(*_req));
+	
+	buffer[bytes] = '\0';
+	
+	try {
+		Request* newRequest = new Request(std::string(buffer));
+		Request* oldRequest = _request;
+		_request = newRequest;
+		
+		try {
+			_reps.push_back(_server->executeRequest(*_request));
+			if (oldRequest)
+				delete oldRequest;
+		}
+		catch (...) {
+			_request = oldRequest;
+			delete newRequest;
+			throw;
+		}
 	}
-	catch(const std::runtime_error& e)
-	{
+	catch (const std::exception& e) {
 		Logger::log(e.what(), ERROR);
-		Logger::log("Failed to execute request on server " + _server->getIp(), ERROR);
+		return false;
 	}
 	
 	return true;
@@ -75,7 +90,7 @@ bool Client::sendResponse()
 	Response rep = _reps[0];
 	std::string content = rep.build();
 	Logger::log("Sending response", DEBUG);
-	Logger::log(rep.build(), TEXT);
+	//Logger::log(rep.build(), TEXT);
 	ssize_t len = content.size();
 	ssize_t sent = send(_fd, content.c_str(), len, MSG_NOSIGNAL);
 	if (sent == len)
@@ -86,5 +101,5 @@ bool Client::sendResponse()
 
 std::string Client::getRequest()
 {
-	return _request;
+	return _request ? _request->request : "";
 }

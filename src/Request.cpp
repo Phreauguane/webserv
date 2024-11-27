@@ -13,9 +13,9 @@ Request::Request(const Request& copy)
 
 Request::Request(const std::string& req)
 {
-	request = req;
+	this->request = req;
 	Logger::log("Received request", DEBUG);
-	Logger::log(request, TEXT);
+	Logger::log(this->request, TEXT);
 	parseRequest();
 }
 
@@ -85,5 +85,6 @@ void Request::logData()
 
 Request::~Request()
 {
-	//
+	attributes.clear();
+	accept.clear();
 }

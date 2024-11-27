@@ -18,10 +18,9 @@ public:
 	bool readRequest();
 	~Client();
 private:
-	Server *_server;
-	size_t _size;
-	std::string _request;
-	std::vector<Response> _reps;
-	Request *_req;
+	Server* _server;
+	Request* _request;
 	int _fd;
+	size_t _size;
+	std::vector<Response> _reps;
 };
