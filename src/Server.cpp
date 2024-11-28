@@ -408,60 +408,87 @@ Response Server::_post(const Request& req)
 Response Server::_delete(Request& req)
 {
 	Response rep;
-	Location *loc = _getLocation(req.path);
-	std::string path = _findResourcePath(req, loc);
-	std::string method = "DELETE";
-	Logger::log("DELETE on location : " + loc->getName(), DEBUG);
-	if (!Utils::searchFor(loc->_allowed_methods, method))
-	{
-		Logger::log("Method DELETE not allowed", ERROR);	
-		return rep;
-	}
+	rep.http = "HTTP/1.1";
+	
+	try {
+		// Vérification de la location
+		Location *loc = _getLocation(req.path);
+		if (!loc) {
+			rep.status = 404;
+			rep.phrase = "Not Found";
+			rep.body = "Location not found";
+			rep.ready = true;
+			return rep;
+		}
 
-	Logger::log("Trying to delete file: " + path, DEBUG);
+		// Vérification des permissions de méthode
+		std::string method = "DELETE";
+		if (!Utils::searchFor(loc->_allowed_methods, method)) {
+			rep.status = 405;
+			rep.phrase = "Method Not Allowed";
+			rep.body = "DELETE method not allowed for this location";
+			rep.attributes["Allow"] = "GET, POST";
+			rep.ready = true;
+			return rep;
+		}
 
-	// Vérifier si le fichier existe
-	if (!Utils::fileExists(path))
-	{
-		Logger::log("File not found: " + path, ERROR);
-		rep.http = "HTTP/1.1";
-		rep.status = 404;
-		rep.phrase = "Not Found";
-		rep.body = "File not found";
+		// Construction du chemin complet
+		std::string path = _findResourcePath(req, loc);
 		
-		rep.ready = true;
-		return rep;
-	}
+		// Vérification de l'existence du fichier
+		if (!Utils::fileExists(path)) {
+			rep.status = 404;
+			rep.phrase = "Not Found";
+			rep.body = "File not found";
+			rep.ready = true;
+			return rep;
+		}
 
-	// Vérifier les permissions
-	if (access(path.c_str(), W_OK) != 0)
-	{
-		rep.http = "HTTP/1.1";
-		rep.status = 403;
-		rep.phrase = "Forbidden";
-		rep.body = "Permission denied";
-		rep.ready = true;
-		return rep;
-	}
+		// Vérification du type (ne pas supprimer les dossiers)
+		struct stat path_stat;
+		if (stat(path.c_str(), &path_stat) == 0) {
+			if (S_ISDIR(path_stat.st_mode)) {
+				rep.status = 403;
+				rep.phrase = "Forbidden";
+				rep.body = "Cannot delete directories";
+				rep.ready = true;
+				return rep;
+			}
+		}
 
-	// Tenter de supprimer le fichier
-	if (remove(path.c_str()) != 0)
-	{
-		rep.http = "HTTP/1.1";
+		// Vérification des permissions
+		if (access(path.c_str(), W_OK) != 0) {
+			rep.status = 403;
+			rep.phrase = "Forbidden";
+			rep.body = "Permission denied";
+			rep.ready = true;
+			return rep;
+		}
+
+		// Tentative de suppression
+		if (remove(path.c_str()) != 0) {
+			rep.status = 500;
+			rep.phrase = "Internal Server Error";
+			rep.body = "Failed to delete file";
+			rep.ready = true;
+			return rep;
+		}
+
+		// Succès
+		rep.status = 200;
+		rep.phrase = "OK";
+		rep.body = "{\"status\": \"success\", \"message\": \"File deleted successfully\"}";
+		rep.attributes["Content-Type"] = "application/json";
+		rep.ready = true;
+		
+	} catch (const std::exception& e) {
+		Logger::log("Delete error: " + std::string(e.what()), ERROR);
 		rep.status = 500;
 		rep.phrase = "Internal Server Error";
-		rep.body = "Failed to delete file";
+		rep.body = "An unexpected error occurred";
 		rep.ready = true;
-		return rep;
 	}
-
-	// Succès
-	rep.http = "HTTP/1.1";
-	rep.status = 200;
-	rep.phrase = "OK";
-	rep.body = "{\"status\": \"success\", \"message\": \"File deleted successfully\"}";
-	rep.attributes["Content-Type"] = "application/json";
-	rep.ready = true;
+	
 	return rep;
 }
 
