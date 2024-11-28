@@ -397,8 +397,15 @@ Response CGI::_execC(const std::string& path, Request& req)
 	// Nettoyer le chemin du fichier en retirant les paramètres GET
 	std::string clean_path = path;
 	size_t pos = clean_path.find("?");
+	if (pos != std::string::npos) {
+		clean_path = clean_path.substr(0, pos);
+	}
 	
-
+	std::string query = _getQuery(req);
+	
+	// Compiler le programme C
+	std::string executable = _compileCProgram(clean_path);
+	
 	int* pipefd = createPipes();
 	if (pipefd == NULL)
 		throw std::runtime_error("Unable to create pipe");
@@ -410,6 +417,15 @@ Response CGI::_execC(const std::string& path, Request& req)
 	{
 		try
 		{
+			char* args[] = {(char*)executable.c_str(), NULL};
+			
+			// Préparer les variables d'environnement pour le programme C
+			std::string query_string = "QUERY_STRING=" + query;
+			char* envp[] = {
+				(char*)query_string.c_str(),
+				NULL
+			};
+			
 			_executeCommand(executable, query, args, envp, pipefd);
 		}
 		catch(const std::runtime_error& e)
