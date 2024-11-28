@@ -43,24 +43,60 @@ static int *createPipes()
 
 void CGI::_executeCommand(const std::string& cmd, const std::string& query, char **args, char **envp, int *pipefd)
 {
-	Logger::log("Running command : " + cmd, DEBUG);
-	// Processus enfant
-	dup2(pipefd[1], STDOUT_FILENO); // Rediriger la sortie standard vers le pipe
-	close(pipefd[0]); // Fermer l'extrémité en lecture du pipe
-	close(pipefd[1]); // Fermer l'extrémité en écriture après duplication
+	try {
+		if (!cmd.c_str() || !args || !envp || !pipefd) {
+			throw std::runtime_error("Invalid arguments passed to _executeCommand");
+		}
 
-	// Utiliser un pipe pour envoyer les données POST via l'entrée standard
-	int *pipe_stdin = createPipes();
+		// Vérifier l'existence et les permissions du fichier
+		if (access(cmd.c_str(), F_OK | X_OK) != 0) {
+			throw std::runtime_error("Command not found or not executable: " + cmd);
+		}
 
-	dup2(pipe_stdin[0], STDIN_FILENO);  // Rediriger stdin vers le pipe
-	close(pipe_stdin[0]);
-	if (query.size() > 0)
-		write(pipe_stdin[1], query.c_str(), query.size()); // Envoyer les données POST
-	close(pipe_stdin[1]);
-	Logger::log("query : " + query, DEBUG);
-	execve(cmd.c_str(), args, envp); // Exécuter PHP CGI
-	_restoreStdOut();
-	throw std::runtime_error("Unkown command : " + cmd);
+		// Redirection de stdout avec vérification
+		if (dup2(pipefd[1], STDOUT_FILENO) == -1) {
+			throw std::runtime_error("Failed to redirect stdout");
+		}
+
+		// Création et vérification du pipe pour stdin
+		int *pipe_stdin = createPipes();
+		if (!pipe_stdin) {
+			throw std::runtime_error("Failed to create stdin pipe");
+		}
+
+		// Redirection de stdin avec vérification
+		if (dup2(pipe_stdin[0], STDIN_FILENO) == -1) {
+			close(pipe_stdin[0]);
+			close(pipe_stdin[1]);
+			throw std::runtime_error("Failed to redirect stdin");
+		}
+
+		close(pipe_stdin[0]);
+		
+		// Écriture des données POST avec vérification
+		if (!query.empty()) {
+			ssize_t written = write(pipe_stdin[1], query.c_str(), query.size());
+			if (written == -1 || static_cast<size_t>(written) != query.size()) {
+				close(pipe_stdin[1]);
+				throw std::runtime_error("Failed to write query data");
+			}
+		}
+		
+		close(pipe_stdin[1]);
+		close(pipefd[0]);
+		close(pipefd[1]);
+
+		// Exécution de la commande
+		if (execve(cmd.c_str(), args, envp) == -1) {
+			_restoreStdOut();
+			throw std::runtime_error("Failed to execute command: " + std::string(strerror(errno)));
+		}
+	}
+	catch (const std::exception& e) {
+		_restoreStdOut();
+		Logger::log("CGI execution error: " + std::string(e.what()), ERROR);
+		throw;
+	}
 }
 
 std::string extractAfterPrefix(const std::string& input, const std::string& prefix)
@@ -112,16 +148,55 @@ std::string removeHeader(const std::string& input)
 Response CGI::_parseOutputPHP(std::string& output, Request& req)
 {
 	Response rep;
-
 	rep.http = "HTTP/1.1";
-	rep.attributes["Location"] = Utils::removeWSpaces(extractAfterPrefix(output, "Location: "));
-	rep.attributes["Content-Type"] = Utils::removeWSpaces(extractAfterPrefix(output, "Content-type: "));
-	rep.status = std::atoi(Utils::removeWSpaces(extractAfterPrefix(output, "Status: ")).c_str());
-	rep.phrase = "OK";
-	rep.body = removeHeader(output);
-	rep.ready = true;
 
-	_handlePHPSession(req, rep);
+	try {
+		if (output.empty()) {
+			throw std::runtime_error("Empty CGI output");
+		}
+
+		// Extraction et validation du Content-Type
+		std::string contentType = Utils::removeWSpaces(extractAfterPrefix(output, "Content-type: "));
+		if (!contentType.empty()) {
+			rep.attributes["Content-Type"] = contentType;
+		} else {
+			rep.attributes["Content-Type"] = "text/html"; // Type par défaut
+		}
+
+		// Extraction et validation du Status
+		std::string status = Utils::removeWSpaces(extractAfterPrefix(output, "Status: "));
+		if (!status.empty()) {
+			rep.status = std::atoi(status.c_str());
+			if (rep.status < 100 || rep.status > 599) {
+				rep.status = 500; // Status code invalide
+			}
+		} else {
+			rep.status = 200; // Status par défaut
+		}
+
+		// Extraction de la Location pour les redirections
+		std::string location = Utils::removeWSpaces(extractAfterPrefix(output, "Location: "));
+		if (!location.empty()) {
+			rep.attributes["Location"] = location;
+			if (rep.status == 200) {
+				rep.status = 302; // Redirection par défaut si status non spécifié
+			}
+		}
+
+		rep.phrase = "OK";
+		rep.body = removeHeader(output);
+		rep.ready = true;
+
+		_handlePHPSession(req, rep);
+	}
+	catch (const std::exception& e) {
+		Logger::log("CGI output parsing error: " + std::string(e.what()), ERROR);
+		rep.status = 500;
+		rep.phrase = "Internal Server Error";
+		rep.body = "Failed to process CGI output";
+		rep.ready = true;
+	}
+
 	return rep;
 }
 
@@ -350,6 +425,12 @@ Response CGI::_execPHP(const std::string& path, Request& req)
 
 Response CGI::_execPython(const std::string& path, Request& req)
 {
+	// Vérifier la version de Python et logger l'avertissement
+	std::string python_version = _getPythonVersion();
+	if (python_version >= "3.13") {
+		Logger::log("Warning: Python CGI module is deprecated in Python 3.13+. Consider updating your Python scripts.", WARNING);
+	}
+
 	// Nettoyer le chemin du script en retirant les paramètres GET
 	std::string clean_path = path;
 	size_t pos = clean_path.find("?");
@@ -403,6 +484,34 @@ Response CGI::_execPython(const std::string& path, Request& req)
 		return handleParentProcessPHP(pipefd, pid, this, req);
 	Response rep;
 	return rep;
+}
+
+std::string CGI::_getPythonVersion()
+{
+	std::string python_exec = _getExec("python3");
+	std::string cmd = python_exec + " --version";
+	
+	FILE* pipe = popen(cmd.c_str(), "r");
+	if (!pipe) {
+		return "unknown";
+	}
+	
+	char buffer[128];
+	std::string result = "";
+	
+	while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
+		result += buffer;
+	}
+	
+	pclose(pipe);
+	
+	// Extraire la version (format: "Python X.Y.Z")
+	size_t pos = result.find(" ");
+	if (pos != std::string::npos) {
+		return result.substr(pos + 1);
+	}
+	
+	return "unknown";
 }
 
 std::string CGI::_compileCProgram(const std::string& path)

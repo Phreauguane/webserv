@@ -31,6 +31,7 @@ private:
 	Response _execPython(const std::string&, Request&);
 	Response _execC(const std::string&, Request&);
 	std::string _compileCProgram(const std::string&);
+	std::string _getPythonVersion();
 
 private:
 	char **_env;
