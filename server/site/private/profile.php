@@ -16,7 +16,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirm_password = $_POST['confirm_password'];
     
     if (password_verify($current_password, $user_data['password'])) {
-        if ($new_password === $confirm_password) {
+        if ($new_password === $current_password) {
+            $error = "Le nouveau mot de passe doit être différent de l'ancien";
+        }
+        else if ($new_password === $confirm_password) {
             $users[$username]['password'] = password_hash($new_password, PASSWORD_DEFAULT);
             file_put_contents('../database/users.json', json_encode($users, JSON_PRETTY_PRINT));
             $success = "Mot de passe modifié avec succès";

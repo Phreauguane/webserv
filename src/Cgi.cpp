@@ -143,46 +143,71 @@ Response handleParentProcessPHP(int* pipefd, pid_t pid, CGI* cgi, Request& req)
 std::string CGI::_getQuery(const Request& req)
 {
 	if (req.method == "POST") {
+		// Vérifier si Content-Type existe
 		std::map<std::string, std::string>::const_iterator it = req.attributes.find("Content-Type");
-		if (it != req.attributes.end() && it->second.find("multipart/form-data") != std::string::npos) {
+		if (it == req.attributes.end()) {
+			Logger::log("POST request missing Content-Type", ERROR);
+			throw std::runtime_error("Missing Content-Type in POST request");
+		}
+
+		// Traitement spécial pour multipart/form-data
+		if (it->second.find("multipart/form-data") != std::string::npos) {
 			try {
 				std::string contentType = it->second;
-				std::string boundary = contentType.substr(contentType.find("boundary=") + 9);
+				size_t boundaryPos = contentType.find("boundary=");
+				if (boundaryPos == std::string::npos) {
+					throw std::runtime_error("Missing boundary in multipart/form-data");
+				}
+				std::string boundary = contentType.substr(boundaryPos + 9);
 				
-				// Extraire le nom du fichier
+				// Vérifier la validité du boundary
+				if (boundary.empty()) {
+					throw std::runtime_error("Empty boundary in multipart/form-data");
+				}
+
+				// Extraire le nom du fichier avec vérification
 				std::string filename = "unknown";
 				size_t filenamePos = req.request.find("filename=\"");
 				if (filenamePos != std::string::npos) {
 					filenamePos += 10;
 					size_t filenameEnd = req.request.find("\"", filenamePos);
-					if (filenameEnd != std::string::npos) {
-						filename = req.request.substr(filenamePos, filenameEnd - filenamePos);
+					if (filenameEnd == std::string::npos) {
+						throw std::runtime_error("Malformed filename in multipart/form-data");
 					}
+					filename = req.request.substr(filenamePos, filenameEnd - filenamePos);
+				}
+
+				// Vérifier la taille du body
+				if (req.body.empty()) {
+					throw std::runtime_error("Empty body in POST request");
 				}
 				
-				// Pré-calculer la taille totale nécessaire
-				size_t totalSize = 0;
+				// Construction du corps de la requête avec vérification de la mémoire
 				std::string header = "--" + boundary + "\r\n";
 				header += "Content-Disposition: form-data; name=\"fichier\"; filename=\"" + filename + "\"\r\n";
 				header += "Content-Type: " + contentType + "\r\n\r\n";
 				std::string footer = "\r\n--" + boundary + "--\r\n";
 				
-				totalSize = header.size() + req.body.size() + footer.size();
+				size_t totalSize = header.size() + req.body.size() + footer.size();
+				if (totalSize > MAX_POST_SIZE) {  // Définir MAX_POST_SIZE dans les constantes
+					throw std::runtime_error("POST request too large");
+				}
 				
-				// Réserver la mémoire nécessaire
 				std::vector<char> body;
-				body.reserve(totalSize);
-				
-				// Construire le corps de la requête
-				body.insert(body.end(), header.begin(), header.end());
-				body.insert(body.end(), req.body.begin(), req.body.end());
-				body.insert(body.end(), footer.begin(), footer.end());
+				try {
+					body.reserve(totalSize);
+					body.insert(body.end(), header.begin(), header.end());
+					body.insert(body.end(), req.body.begin(), req.body.end());
+					body.insert(body.end(), footer.begin(), footer.end());
+				} catch (const std::bad_alloc& e) {
+					throw std::runtime_error("Memory allocation failed for POST data");
+				}
 				
 				return std::string(body.begin(), body.end());
 			}
 			catch (const std::exception& e) {
 				Logger::log("Error in _getQuery: " + std::string(e.what()), ERROR);
-				return "";
+				throw; // Propager l'erreur pour une gestion appropriée
 			}
 		}
 		return req.body;

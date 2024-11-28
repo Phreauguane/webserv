@@ -7,6 +7,8 @@
 #include "Session.h"
 #include "ISessionManager.h"
 
+#define MAX_POST_SIZE 10485760  // 10MB par exemple
+
 class CGI
 {
 public:
