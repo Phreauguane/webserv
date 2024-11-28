@@ -389,19 +389,113 @@ std::string extractFilename(const std::string& input)
 
 Response Server::_post(const Request& req)
 {
-	Location *loc = _getLocation(req.path);
-	// verify method
 	Response rep;
-	std::string method = "POST";
-	Logger::log("POST on location : " + loc->getName(), DEBUG);
-	if (!Utils::searchFor(loc->_allowed_methods, method))
-	{
-		Logger::log("Method POST not allowed", ERROR);	
-		return rep;
+	rep.http = "HTTP/1.1";
+	
+	try {
+		// Vérification de la location
+		Location *loc = _getLocation(req.path);
+		if (!loc) {
+			rep.status = 404;
+			rep.phrase = "Not Found";
+			rep.body = "Location not found";
+			rep.ready = true;
+			return rep;
+		}
+
+		// Vérification des permissions de méthode
+		std::string method = "POST";
+		if (!Utils::searchFor(loc->_allowed_methods, method)) {
+			rep.status = 405;
+			rep.phrase = "Method Not Allowed";
+			rep.body = "POST method not allowed for this location";
+			rep.attributes["Allow"] = "GET, DELETE";
+			rep.ready = true;
+			return rep;
+		}
+
+		// Vérification de la taille du body
+		if (req.body.size() > getMaxBodySize()) {
+			rep.status = 413;
+			rep.phrase = "Payload Too Large";
+			rep.body = "Request entity too large";
+			rep.ready = true;
+			return rep;
+		}
+
+		// Vérification du Content-Type
+		if (req.attributes.find("Content-Type") == req.attributes.end()) {
+			rep.status = 400;
+			rep.phrase = "Bad Request";
+			rep.body = "Content-Type header is required";
+			rep.ready = true;
+			return rep;
+		}
+
+		// Construction du chemin complet
+		std::string path = _findResourcePath(req, loc);
+		
+		// Vérification du dossier parent
+		std::string parent_dir = path.substr(0, path.find_last_of("/"));
+		if (!Utils::fileExists(parent_dir)) {
+			rep.status = 409;
+			rep.phrase = "Conflict";
+			rep.body = "Parent directory does not exist";
+			rep.ready = true;
+			return rep;
+		}
+
+		// Vérification des permissions d'écriture
+		if (access(parent_dir.c_str(), W_OK) != 0) {
+			rep.status = 403;
+			rep.phrase = "Forbidden";
+			rep.body = "Permission denied";
+			rep.ready = true;
+			return rep;
+		}
+
+		// Traitement du fichier
+		if (Utils::fileExists(path)) {
+			// Le fichier existe déjà, on le met à jour
+			std::ofstream file(path.c_str(), std::ios::binary);
+			if (!file.is_open()) {
+				rep.status = 500;
+				rep.phrase = "Internal Server Error";
+				rep.body = "Failed to open file for writing";
+				rep.ready = true;
+				return rep;
+			}
+			file.write(req.body.c_str(), req.body.size());
+			file.close();
+		} else {
+			// Création d'un nouveau fichier
+			std::ofstream file(path.c_str(), std::ios::binary);
+			if (!file.is_open()) {
+				rep.status = 500;
+				rep.phrase = "Internal Server Error";
+				rep.body = "Failed to create file";
+				rep.ready = true;
+				return rep;
+			}
+			file.write(req.body.c_str(), req.body.size());
+			file.close();
+		}
+
+		// Succès
+		rep.status = 201;
+		rep.phrase = "Created";
+		rep.body = "{\"status\": \"success\", \"message\": \"File uploaded successfully\"}";
+		rep.attributes["Content-Type"] = "application/json";
+		rep.ready = true;
+
+	} catch (const std::exception& e) {
+		Logger::log("POST error: " + std::string(e.what()), ERROR);
+		rep.status = 500;
+		rep.phrase = "Internal Server Error";
+		rep.body = "An unexpected error occurred";
+		rep.ready = true;
 	}
-	std::string path = _findResourcePath(req, loc);
-	Logger::log("path : " + path, DEBUG);
-	// TO IMPLEMENT
+	
 	return rep;
 }
 
