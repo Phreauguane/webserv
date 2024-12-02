@@ -284,6 +284,18 @@ Response Server::executeRequest(Request& req)
 	
 	// Récupérer la location visée par la requête
 	Location *loc = _getLocation(req.path);
+	
+	// Si le chemin est vide ou "/", utiliser l'index configuré
+	if (req.path.empty() || req.path == "/") {
+		if (!loc->_index.empty())
+		{
+			// Modifier le chemin de la requête pour pointer vers l'index
+			req.path = "/" + loc->_index;
+			// Mettre à jour la location avec le nouveau chemin
+			loc = _getLocation(req.path);
+		}
+	}
+	
 	std::string path = _findResourcePath(req, loc);
 	
 	// Tenter d'exécuter le CGI

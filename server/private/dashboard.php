@@ -2,7 +2,7 @@
 require_once '../includes/header.php';
 
 if (!isLoggedIn()) {
-    header('Location: /site/public/login.php');
+    header('Location: /public/login.php');
     exit;
 }
 

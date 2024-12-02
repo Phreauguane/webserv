@@ -10,5 +10,5 @@ if (isset($_COOKIE['remember_user'])) {
 }
 
 // Rediriger vers la page de connexion
-header('Location: /site/public/login.php');
+header('Location: /public/login.php');
 exit;

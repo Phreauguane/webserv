@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             file_put_contents('../database/users.json', json_encode($users, JSON_PRETTY_PRINT));
             
             $_SESSION['user_id'] = $username;
-            header('Location: /site/private/dashboard.php');
+            header('Location: /private/dashboard.php');
             exit;
         }
     }

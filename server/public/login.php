@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             setcookie('remember_user', $username, time() + (86400 * 30), "/"); // 30 jours
         }
         
-        header('Location: /site/private/dashboard.php');
+        header('Location: /private/dashboard.php');
         exit;
     } else {
         $error = "Nom d'utilisateur ou mot de passe incorrect";
