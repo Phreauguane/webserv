@@ -11,9 +11,10 @@ Request::Request(const Request& copy)
 	*this = copy;
 }
 
-Request::Request(const std::string& req)
+Request::Request(const std::string& req, Client *client)
 {
 	this->request = req;
+	this->client = client;
 	Logger::log("Received request", DEBUG);
 	Logger::log(this->request, TEXT);
 	parseRequest();

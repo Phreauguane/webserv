@@ -9,8 +9,9 @@
 
 #define MAX_POST_SIZE 10485760  // 10MB par exemple
 
-class CGI
-{
+class Request;
+
+class CGI {
 public:
 	CGI();
 	CGI(ISessionManager& server);

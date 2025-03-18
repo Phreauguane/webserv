@@ -29,6 +29,8 @@
 
 #define MAX_EVENTS 512
 #define BUFFER_SIZE 30720
+#define MAX_REQUESTS 1024
+#define MAX_REQUESTS_PER_CYCLE 1
 
 #ifndef LOG_LEVEL
 # define LOG_LEVEL INFO

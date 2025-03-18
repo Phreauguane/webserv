@@ -61,6 +61,7 @@ void Config::run(bool *shouldClose)
 			throw std::runtime_error("epoll_wait error");
 		_checkForConnections(nfds);
 		_handleRequests(nfds);
+		_runRequests();
 	}
 }
 
@@ -111,6 +112,14 @@ void Config::_handleRequests(size_t nfds)
 				}
 			}
 		}
+	}
+}
+
+void Config::_runRequests(void)
+{
+	for (size_t i = 0; i < _servers.size(); i++)
+	{
+		_servers[i]->runRequests();
 	}
 }
 

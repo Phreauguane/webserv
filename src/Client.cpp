@@ -1,14 +1,18 @@
 #include "Client.h"
 #include "Utils.h"
 
-Client::Client() : _server(NULL), _request(NULL), _fd(-1), _size(0) {}
+const char *Client::BufferOverflowException::what() const throw() {
+	return ("Request buffer overflow");
+}
 
-Client::Client(const Client& copy) : _request(NULL)
+Client::Client() : _server(NULL), _fd(-1), _size(0) {}
+
+Client::Client(const Client& copy)
 {
 	*this = copy;
 }
 
-Client::Client(Server *server) : _server(server), _request(NULL), _fd(-1), _size(0)
+Client::Client(Server *server) : _server(server), _fd(-1), _size(0)
 {
 	_id = RED + Utils::generateRandomString(8) + DEF;
 	_fd = accept(_server->getSockFd(), NULL, NULL);
@@ -21,11 +25,6 @@ Client::Client(Server *server) : _server(server), _request(NULL), _fd(-1), _size
 Client::~Client()
 {
 	Logger::log(_id + " Client disconnected", INFO);
-	if (_request)
-	{
-		delete _request;
-		_request = NULL;
-	}
 	if (_fd >= 0)
 		close(_fd);
 }
@@ -35,12 +34,9 @@ Client& Client::operator=(const Client& copy)
 	if (this == &copy)
 		return *this;
 	_server = copy._server;
-	if (_request)
-		delete _request;
-	_request = copy._request ? new Request(*copy._request) : NULL;
+	
 	_fd = copy._fd;
 	_size = copy._size;
-	_reps = copy._reps;
 	return *this;
 }
 
@@ -64,28 +60,34 @@ bool Client::readRequest()
 	buffer[bytes] = '\0';
 	
 	try {
-		Request* newRequest = new Request(std::string(buffer));
-		Request* oldRequest = _request;
-		_request = newRequest;
-		
-		try {
-			_reps.push_back(_server->executeRequest(*_request));
-			if (oldRequest)
-				delete oldRequest;
-		}
-		catch (...) {
-			_request = oldRequest;
-			delete newRequest;
-			throw;
-		}
+		_server->pushRequest(new Request(std::string(buffer), this));
+		return true;
 	}
 	catch (const std::exception& e) {
 		Logger::log(e.what(), ERROR);
 		return false;
 	}
-	
-	return true;
 }
+
+// bool Client::executeRequest()
+// {
+// 	if (_reqs.size() == 0)
+// 		return false;
+
+// 	int i = 0;
+// 	while (_reqs[i] == NULL)++i;
+
+// 	Request *request = _reqs[i];
+// 	_reqs.erase(_reqs.begin(), _reqs.begin() + i + 1);
+
+// 	try {
+// 		_reps.push_back(_server->executeRequest(*request));
+// 	}
+// 	catch (...) { return false; }
+// 	sendResponse();
+	
+// 	return true;
+// }
 
 bool Client::sendResponse()
 {
@@ -112,7 +114,7 @@ bool Client::sendResponse()
 	return sent == len;
 }
 
-std::string Client::getRequest()
+void Client::addResponse(Response &rep)
 {
-	return _request ? _request->request : "";
+	_reps.push_back(rep);
 }

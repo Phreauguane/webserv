@@ -5,6 +5,8 @@
 #include "Response.h"
 #include "Request.h"
 
+class Server;
+
 class Client
 {
 public:
@@ -13,13 +15,17 @@ public:
 	Client(Server*);
 	Client& operator=(const Client&);
 	int getFd();
-	std::string getRequest();
-	bool sendResponse();
+	std::string getLatestRequest();
 	bool readRequest();
+	bool sendResponse();
+	void addResponse(Response&);
 	~Client();
+
+	class BufferOverflowException: public std::exception {
+		virtual const char *what() const throw();
+	};
 private:
 	Server* _server;
-	Request* _request;
 	int _fd;
 	size_t _size;
 	std::vector<Response> _reps;

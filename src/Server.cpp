@@ -74,10 +74,15 @@ void Server::_parseSource(const std::string& source)
 Server::Server(const std::string& source, char **env)
 {
 	_env = env;
-	cgiHandler = CGI(*this);
-	cgiHandler.setup(_env);
+	cgiHandler = new CGI(*this);
+	cgiHandler->setup(_env);
 	_root_loc = new Location(_env);
 	_parseSource(source);
+}
+
+void Server::pushRequest(Request *req)
+{
+	_reqs.push_back(req);
 }
 
 void Server::_loadTypes()
@@ -301,7 +306,7 @@ Response Server::executeRequest(Request& req)
 	// Tenter d'exécuter le CGI
 	if (req.method == "DELETE")
 		return _delete(req);
-	else if (cgiHandler.executeCGI(req, path, loc, rep))
+	else if (cgiHandler->executeCGI(req, path, loc, rep))
 		return rep;
 	Logger::log("Not CGI, running methods...", DEBUG);
 	if (req.method == "GET")
@@ -723,6 +728,8 @@ size_t Server::getMaxBodySize()
 
 Server::~Server()
 {
+	delete cgiHandler;
+
 	// Nettoyer toutes les sessions
 	for (std::map<std::string, Session*>::iterator it = _sessions.begin(); 
 		 it != _sessions.end(); ++it) {
@@ -809,4 +816,38 @@ std::string Server::_getPath(Request& req)
 	if (path[0] == '/')
 		path = path.substr(1);
 	return path;
+}
+
+bool Server::sendResponse(Response&rep, int fd)
+{
+	std::string content = rep.build();
+	Logger::log("Sending response", DEBUG);
+	ssize_t len = content.size();
+	ssize_t sent = send(fd, content.c_str(), len, MSG_NOSIGNAL);
+	Logger::log("sent response", DEBUG);
+
+	if (rep.attributes.find("Connection") != rep.attributes.end() && 
+		rep.attributes["Connection"] == "close") {
+		close(fd);
+	}
+
+	return sent == len;
+}
+
+void Server::runRequests()
+{
+	for (int i = 0; i < MAX_REQUESTS_PER_CYCLE; i++)
+	{
+		try {
+			if (_reqs.size() == 0)
+				return;
+			Request *req = _reqs[0];
+			_reqs.erase(_reqs.begin());
+
+			Response rep = this->executeRequest(*req);
+			req->client->addResponse(rep);
+		} catch (...) {
+			Logger::log("Failed to execute request", INFO);
+		}
+	}
 }

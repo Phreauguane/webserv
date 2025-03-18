@@ -1,10 +1,10 @@
 #pragma once
 
 #include "webserv.h"
+#include "Cgi.h"
 #include "Location.h"
 #include "Request.h"
 #include "Response.h"
-#include "Cgi.h"
 #include "Session.h"
 #include "ISessionManager.h"
 
@@ -14,6 +14,10 @@ enum req_type
 	T_DIR,
 	T_NFD
 };
+
+class Request;
+class Response;
+class CGI;
 
 class Server : public ISessionManager
 {
@@ -30,8 +34,11 @@ public:
 	size_t getMaxBodySize();
 	void printDetails() const;
 	~Server();
-	virtual bool hasSession(const std::string& sessionId);
-	virtual Session* getSession(const std::string& sessionId);
+	void pushRequest(Request*);
+	void runRequests();
+	virtual bool hasSession(const std::string&);
+	virtual Session* getSession(const std::string&);
+	static bool sendResponse(Response&, int);
 private:
 	Response _get(const Request&);
 	Response _post(const Request&);
@@ -46,13 +53,13 @@ private:
 	void _setupServAddr();
 	void _loadTypes();
 	Location *_getLocation(const std::string&);
-	void _handleSession(Request& req, Response& rep);
+	void _handleSession(Request&, Response&);
 	std::string _generateSessionId();
 	void _cleanExpiredSessions();
-	std::string _getPath(Request& req);
+	std::string _getPath(Request&);
 private:
 	char **_env;
-	CGI cgiHandler;
+	CGI *cgiHandler;
 	std::string _name, _ip_addr;
 	bool _ready;
 	struct sockaddr_in _servaddr;
@@ -63,4 +70,5 @@ private:
 	std::map<std::string, std::string> _types;
 	unsigned int _max_body_size;
 	std::map<std::string, Session*> _sessions;
+	std::vector<Request*> _reqs;
 };

@@ -22,6 +22,7 @@ private:
 	void _modFd(int, uint32_t);
 	void _checkForConnections(size_t);
 	void _handleRequests(size_t);
+	void _runRequests();
 private:
 	char **_env;
 	int _epollfd;

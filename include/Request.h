@@ -1,6 +1,9 @@
 #pragma once
 
 #include "webserv.h"
+#include "Client.h"
+
+class Client;
 
 enum methods
 {
@@ -15,7 +18,7 @@ class Request
 public:
 	Request();
 	Request(const Request&);
-	Request(const std::string&);
+	Request(const std::string&, Client*);
 	void parseRequest();
 	void parseBody();
 	void logData();
@@ -33,4 +36,6 @@ public:
 	bool keep_alive;
 	std::string body;
 	std::string files;
+	//
+	Client *client;
 };

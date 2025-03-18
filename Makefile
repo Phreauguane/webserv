@@ -24,6 +24,9 @@ SRC		=	main.cpp			\
 all		:
 	$(CPP) -I $(INCLUDE) $(DEBUG_MODE) $(SRC) -o $(NAME)
 
+vg		:
+	$(CPP) -I $(INCLUDE) -g3 $(DEBUG_MODE) $(SRC) -o $(NAME)
+
 debug	:
 	$(CPP) -I $(INCLUDE) $(DEBUG_MODE) $(SRC) -o $(NAME)
 
