@@ -1,4 +1,5 @@
 #include "Client.h"
+#include "Utils.h"
 
 Client::Client() : _server(NULL), _request(NULL), _fd(-1), _size(0) {}
 
@@ -9,15 +10,17 @@ Client::Client(const Client& copy) : _request(NULL)
 
 Client::Client(Server *server) : _server(server), _request(NULL), _fd(-1), _size(0)
 {
+	_id = RED + Utils::generateRandomString(8) + DEF;
 	_fd = accept(_server->getSockFd(), NULL, NULL);
 	if (_fd < 0)
-		throw std::runtime_error("Failed to accept connection to " + _server->getIp());
+		throw std::runtime_error(_id + " Failed to accept connection to " + _server->getIp());
 	_size = _server->getMaxBodySize();
-	Logger::log("Client connected to " + _server->getIp(), SUCCESS);
+	Logger::log(_id + " Client connected to " + _server->getIp(), SUCCESS);
 }
 
 Client::~Client()
 {
+	Logger::log(_id + " Client disconnected", INFO);
 	if (_request)
 	{
 		delete _request;
@@ -88,18 +91,18 @@ bool Client::sendResponse()
 {
 	if (_reps.size() == 0)
 	{
-		Logger::log("Response buffer empty", ERROR);
+		Logger::log(_id + " Response buffer empty", ERROR);
 		return true;
 	}
 	Response rep = _reps[0];
 	std::string content = rep.build();
-	Logger::log("Sending response", DEBUG);
+	Logger::log(_id + " Sending response", DEBUG);
 	//Logger::log(rep.build(), TEXT);
 	ssize_t len = content.size();
 	ssize_t sent = send(_fd, content.c_str(), len, MSG_NOSIGNAL);
 	if (sent == len)
 		_reps.erase(_reps.begin());
-	Logger::log("sent response", DEBUG);
+	Logger::log(_id + " sent response", DEBUG);
 
 	if (rep.attributes.find("Connection") != rep.attributes.end() && 
 		rep.attributes["Connection"] == "close") {

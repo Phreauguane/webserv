@@ -709,7 +709,7 @@ Response Server::_readFile(const Request& req, const std::string& path)
 	rep.http = "HTTP/1.1";
 	rep.status = 200;
 	rep.phrase = "OK";
-	rep.attributes["Connection"] = "close";
+	//rep.attributes["Connection"] = "close";
 	rep.ready = true;
 	return rep;
 }

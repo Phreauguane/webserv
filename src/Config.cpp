@@ -98,22 +98,16 @@ void Config::_handleRequests(size_t nfds)
 				}
 				else if (_epollevents[i].events & EPOLLOUT)
 				{
+					disconnect = true;
 					if (_clients[j]->sendResponse())
-					{
 						Logger::log("Sent response to client", INFO);
-						disconnect = true;
-					}
 					else
-					{
 						Logger::log("Can't send response, Disconnecting...", ERROR);
-						disconnect = true;
-					}
 				}
 				if (disconnect)
 				{
 					delete _clients[j];
 					_clients.erase(_clients.begin() + j);
-					Logger::log("Client disconnected", INFO);
 				}
 			}
 		}

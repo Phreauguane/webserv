@@ -23,4 +23,6 @@ private:
 	int _fd;
 	size_t _size;
 	std::vector<Response> _reps;
+	//Temp
+	std::string _id;
 };
