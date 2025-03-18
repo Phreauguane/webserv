@@ -89,7 +89,7 @@ void CGI::_executeCommand(const std::string& cmd, const std::string& query, char
 		// Exécution de la commande
 		if (execve(cmd.c_str(), args, envp) == -1) {
 			_restoreStdOut();
-			throw std::runtime_error("Failed to execute command: " + std::string(strerror(errno)));
+			throw std::runtime_error("Failed to execute command");
 		}
 	}
 	catch (const std::exception& e) {
@@ -203,7 +203,7 @@ Response CGI::_parseOutputPHP(std::string& output, Request& req)
 Response handleParentProcessPHP(int* pipefd, pid_t pid, CGI* cgi, Request& req)
 {
 	close(pipefd[1]);
-	std::string result = Utils::readFD(pipefd[0]);
+	std::string result = Utils::readFD(pipefd[0], true);
 	close(pipefd[0]);
 
 	//Logger::log(result, TEXT);
@@ -413,7 +413,7 @@ Response CGI::_execPHP(const std::string& path, Request& req)
 		}
 		catch(const std::runtime_error& e)
 		{
-			Logger::log(e.what(), ERROR);
+			Logger::log("CGI execution error", ERROR);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -476,7 +476,7 @@ Response CGI::_execPython(const std::string& path, Request& req)
 		}
 		catch(const std::runtime_error& e)
 		{
-			Logger::log(e.what(), ERROR);
+			Logger::log("CGI execution error", ERROR);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -564,7 +564,7 @@ Response CGI::_execC(const std::string& path, Request& req)
 		}
 		catch(const std::runtime_error& e)
 		{
-			Logger::log(e.what(), ERROR);
+			Logger::log("CGI execution error", ERROR);
 			exit(EXIT_FAILURE);
 		}
 	}

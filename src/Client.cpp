@@ -51,8 +51,12 @@ bool Client::readRequest()
 	char buffer[BUFFER_SIZE + 1];
 	ssize_t bytes = recv(_fd, buffer, BUFFER_SIZE, 0);
 	
-	if (bytes <= 0)
+	if (bytes == 0) {
 		return false;
+	}
+	if (bytes < 0) {
+		return false;
+	}
 	
 	buffer[bytes] = '\0';
 	
@@ -96,6 +100,12 @@ bool Client::sendResponse()
 	if (sent == len)
 		_reps.erase(_reps.begin());
 	Logger::log("sent response", DEBUG);
+
+	if (rep.attributes.find("Connection") != rep.attributes.end() && 
+		rep.attributes["Connection"] == "close") {
+		close(_fd);
+	}
+
 	return sent == len;
 }
 

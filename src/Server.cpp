@@ -498,6 +498,7 @@ Response Server::_post(const Request& req)
 		rep.phrase = "Created";
 		rep.body = "{\"status\": \"success\", \"message\": \"File uploaded successfully\"}";
 		rep.attributes["Content-Type"] = "application/json";
+		rep.attributes["Connection"] = "close";
 		rep.ready = true;
 
 	} catch (const std::exception& e) {
@@ -519,6 +520,7 @@ Response Server::_delete(Request& req)
 	try {
 		// Vérification de la location
 		Location *loc = _getLocation(req.path);
+		std::cout << req.path << std::endl;
 		if (!loc) {
 			rep.status = 404;
 			rep.phrase = "Not Found";
@@ -585,6 +587,7 @@ Response Server::_delete(Request& req)
 		rep.phrase = "OK";
 		rep.body = "{\"status\": \"success\", \"message\": \"File deleted successfully\"}";
 		rep.attributes["Content-Type"] = "application/json";
+		rep.attributes["Connection"] = "close";
 		rep.ready = true;
 		
 	} catch (const std::exception& e) {
@@ -644,7 +647,7 @@ Response Server::_errorPage(unsigned int code)
 	Logger::log(_error_pages[code], INFO);
 	req_type type = _getType(_root_loc->_root + _error_pages[code]);
 	if (type == T_FILE)
-		rep.body = Utils::readFile(_root_loc->_root + _error_pages[code]);
+		rep.body = Utils::readFile(_root_loc->_root + _error_pages[code], true);
 	else
 	{
 		std::stringstream ss;
@@ -656,6 +659,7 @@ Response Server::_errorPage(unsigned int code)
 	rep.http = "HTTP/1.1";
 	rep.status = code;
 	rep.phrase = "ERROR";
+	rep.attributes["Connection"] = "close";
 	rep.ready = true;
 
 	return rep;
@@ -669,6 +673,7 @@ Response Server::_autoIndex(const std::string& path)
 	rep.phrase = "OK";
 	rep.body = _listDirectory(path);
 	rep.attributes["Content-Type"] = "text/html";
+	rep.attributes["Connection"] = "close";
 	rep.ready = true;
 	return rep;
 }
@@ -678,8 +683,8 @@ Response Server::_readFile(const Request& req, const std::string& path)
 	Logger::log("Reading file", DEBUG);
 	(void)req;
 
-	// If execution fails or if file is not .php
-	std::string content = Utils::readFile(path);
+	// Utiliser epoll pour lire les fichiers servis aux clients
+	std::string content = Utils::readFile(path, true);
 	Response rep;
 	rep.body = content;
 	size_t pos = path.find_last_of(".");
@@ -704,6 +709,7 @@ Response Server::_readFile(const Request& req, const std::string& path)
 	rep.http = "HTTP/1.1";
 	rep.status = 200;
 	rep.phrase = "OK";
+	rep.attributes["Connection"] = "close";
 	rep.ready = true;
 	return rep;
 }

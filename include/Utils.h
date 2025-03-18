@@ -12,8 +12,8 @@ namespace Utils
 	std::string removeWSpaces(const std::string&);
 	std::string removeSemicolon(const std::string&);
 	std::string getCurrentTime();
-	std::string readFile(const std::string&);
-	std::string readFD(int);
+	std::string readFile(const std::string& filename, bool useEpoll = false);
+	std::string readFD(int fd, bool isEpollManaged = false);
 	std::string toString(int);
 	std::string toString(float);
 	std::string toString(size_t);

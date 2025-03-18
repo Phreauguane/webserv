@@ -55,7 +55,7 @@ function formatBytes($bytes) {
 <script>
 function deleteItem(filename) {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) {
-        fetch('/site/private/uploads/' + filename, {
+        fetch('/private/uploads/' + filename, {
             method: 'DELETE',
         })
         .then(response => {

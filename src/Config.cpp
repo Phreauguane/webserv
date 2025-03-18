@@ -54,7 +54,7 @@ void Config::run(bool *shouldClose)
 	Logger::log("Waiting for connections...", INFO);
 	while (1)
 	{
-		int nfds = epoll_wait(_epollfd, _epollevents, MAX_EVENTS, -1);
+		int nfds = epoll_wait(_epollfd, _epollevents, MAX_EVENTS, 30000);
 		if (*shouldClose)
 			break;
 		if (nfds < 0)
@@ -99,7 +99,10 @@ void Config::_handleRequests(size_t nfds)
 				else if (_epollevents[i].events & EPOLLOUT)
 				{
 					if (_clients[j]->sendResponse())
+					{
 						Logger::log("Sent response to client", INFO);
+						disconnect = true;
+					}
 					else
 					{
 						Logger::log("Can't send response, Disconnecting...", ERROR);

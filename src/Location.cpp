@@ -57,6 +57,10 @@ std::string Location::getName() const
 
 void Location::parseLine(const std::vector<std::string>& strs)
 {
+	if (strs.empty()) {
+		throw std::runtime_error("Empty configuration line");
+	}
+	
 	if (strs[0] == "root")
 	{
 		Utils::verify_args(strs, 2, 2);
@@ -158,32 +162,41 @@ void Location::addMethod(const std::string& method)
 
 void Location::addChildren(const std::string& source)
 {
-	Location* loc = new Location(source, _env);
-	loc->_parent = this;
-	loc->_root = _root;
-	loc->_allowed_methods = _allowed_methods;
-	_locations[loc->_name] = loc;
+	try {
+		Location* loc = new Location(source, _env);
+		if (!loc) {
+			throw std::runtime_error("Failed to allocate memory for Location");
+		}
+		loc->_parent = this;
+		loc->_root = _root;
+		loc->_allowed_methods = _allowed_methods;
+		_locations[loc->_name] = loc;
+	} catch (const std::exception& e) {
+		throw std::runtime_error("Failed to add children: " + std::string(e.what()));
+	}
 }
 
-Location *Location::getSubLoc(const std::string &path)
+Location* Location::getSubLoc(const std::string& path)
 {
-	if (path.size() == 0 || path == "/" || path == _name || path == "/" + _name)
+	if (path.empty() || path == "/" || path == _name || path == "/" + _name)
 		return this;
 	
 	std::vector<std::string> names = Utils::splitString(path, "/");
-	std::string subpath;
-	if (names.size() > 1)
-	{
-		size_t pos = path.find(names[1]);
-		subpath = path.substr(pos, path.size() - pos);
-	}
-	else if (names.size() == 1)
-	{
-		subpath = "";
-	}
-	if (_locations[names[0]] != NULL)
-		return _locations[names[0]]->getSubLoc(subpath);
-	return this;
+	if (names.empty()) return this;
+	
+	if (names[0].empty() && names.size() > 1)
+		names.erase(names.begin());
+		
+	if (names.empty()) return this;
+	
+	std::map<std::string, Location*>::iterator it = _locations.find(names[0]);
+	if (it == _locations.end() || !it->second)
+		return this;
+		
+	std::string subpath = names.size() > 1 ? 
+		path.substr(path.find(names[1])) : "";
+	
+	return it->second->getSubLoc(subpath);
 }
 
 Location::~Location()

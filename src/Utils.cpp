@@ -160,39 +160,71 @@ std::string Utils::getCurrentTime()
 	return timeStream.str();
 }
 
-std::string Utils::readFile(const std::string& filename)
+std::string Utils::readFile(const std::string& filename, bool useEpoll)
 {
-	std::string out = "";
-	std::ifstream file(filename.c_str());
-
-	if (!file.is_open())
-		throw std::runtime_error("Failed to open file : " + filename);
-	while (file)
-	{
-		char c;
-		file.read(&c, 1);
-
-		if (file)
-			out += c;
-	}
-	file.close();
-	return out;
+    // Si c'est le fichier de configuration, pas besoin d'epoll
+    if (!useEpoll) {
+        std::string out = "";
+        std::ifstream file(filename.c_str());
+        
+        if (!file.is_open())
+            throw std::runtime_error("Failed to open file : " + filename);
+        while (file)
+        {
+            char c;
+            file.read(&c, 1);
+            
+            if (file)
+                out += c;
+        }
+        file.close();
+        return out;
+    } 
+    // Pour les autres fichiers, utiliser epoll
+    else {
+        int fd = open(filename.c_str(), O_RDONLY | O_NONBLOCK);
+        if (fd < 0)
+            throw std::runtime_error("Failed to open file : " + filename);
+            
+        // Ajouter le descripteur à epoll est complexe ici car nous n'avons pas accès à Config
+        // Une solution serait de lire le fichier par petits morceaux et de vérifier EAGAIN
+        
+        std::string content;
+        char buffer[4096];
+        ssize_t bytesRead;
+        
+        while ((bytesRead = read(fd, buffer, sizeof(buffer))) > 0) {
+            content.append(buffer, bytesRead);
+        }
+        
+        if (bytesRead < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+            close(fd);
+            throw std::runtime_error("Error reading file : " + filename);
+        }
+        
+        close(fd);
+        return content;
+    }
 }
 
-std::string Utils::readFD(int fd) {
-	char buffer[1024];
-	std::string result;
-	ssize_t bytesRead;
-
-	while ((bytesRead = read(fd, buffer, 1024)) > 0) {
-		result.append(buffer, bytesRead);
-	}
-
-	if (bytesRead == -1) {
-		throw std::runtime_error("read error in Utils::readFD");
-	}
-
-	return result;
+std::string Utils::readFD(int fd, bool isEpollManaged) {
+    if (!isEpollManaged) {
+        throw std::runtime_error("Reading from FD without epoll management is not allowed");
+    }
+    
+    char buffer[1024];
+    std::string result;
+    ssize_t bytesRead;
+    
+    while ((bytesRead = read(fd, buffer, 1024)) > 0) {
+        result.append(buffer, bytesRead);
+    }
+    
+    if (bytesRead == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
+        throw std::runtime_error("read error in Utils::readFD");
+    }
+    
+    return result;
 }
 
 std::string Utils::toString(int i)
