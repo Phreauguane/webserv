@@ -66,7 +66,6 @@ void Config::run(bool *shouldClose)
         Logger::log("epoll_wait returned: " + Utils::toString(nfds) + " events", INFO);
         _checkForConnections(nfds);
         _handleRequests(nfds);
-        _runRequests();
     }
 }
 
@@ -78,11 +77,26 @@ void Config::_checkForConnections(size_t nfds)
         {
             if (_epollevents[i].data.fd == _servers[j]->getSockFd())
             {
-                Logger::log("New client connection detected", INFO);
-                Client *cli = new Client(_servers[j]);
-                this->_addFd(cli->getFd(), EPOLLIN | EPOLLET);
-                _clients.push_back(cli);
-                Logger::log("Client FD added to epoll: " + Utils::toString(cli->getFd()), INFO);
+                // Accepter toutes les connexions en attente
+                while (true)
+                {
+                    Client *cli = NULL;
+                    try {
+                        cli = new Client(_servers[j]);
+                        this->_addFd(cli->getFd(), EPOLLIN | EPOLLET);
+                        _clients.push_back(cli);
+                        Logger::log("Client FD added to epoll: " + Utils::toString(cli->getFd()), INFO);
+                    }
+                    catch (const std::runtime_error& e) {
+                        // Si cli est NULL, cela signifie que l'accept a échoué
+                        if (cli == NULL) {
+                            break;
+                        }
+                        // Si c'est une autre erreur, on nettoie et on la propage
+                        delete cli;
+                        throw;
+                    }
+                }
             }
         }
     }
@@ -113,6 +127,9 @@ void Config::_handleRequests(size_t nfds)
                 {
                     Logger::log("Reading request...", INFO);
                     if (_clients[j]->readRequest()) {
+                        // Exécuter la requête immédiatement après l'avoir lue
+                        _runRequests();
+                        
                         Logger::log("Request read successfully, modifying FD for EPOLLOUT", INFO);
                         _modFd(fd, EPOLLIN | EPOLLOUT | EPOLLET);
                     } else {

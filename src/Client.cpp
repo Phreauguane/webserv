@@ -15,9 +15,9 @@ Client::Client(const Client& copy)
 Client::Client(Server *server) : _server(server), _fd(-1), _size(0)
 {
 	_fd = accept(_server->getSockFd(), NULL, NULL);
-	if (_fd < 0)
-		throw std::runtime_error(_id + " Failed to accept connection to " + _server->getIp());
-	// _id = RED + Utils::generateRandomString(4) + " [" + Utils::toString(_fd) + "]" + DEF;
+	if (_fd < 0) {
+		throw std::runtime_error("");  // Exception vide pour signaler "pas plus de connexions"
+	}
 	_id = "[" + Utils::toString(_fd) + "]";
 	_size = _server->getMaxBodySize();
 	Logger::log(_id + " Client connected to " + _server->getIp(), SUCCESS);
@@ -49,6 +49,7 @@ int Client::getFd()
 bool Client::readRequest()
 {
 	char buffer[BUFFER_SIZE + 1];
+	std::memset(buffer, 0, BUFFER_SIZE + 1);
 	ssize_t bytes = recv(_fd, buffer, BUFFER_SIZE, 0);
 	
 	if (bytes == 0) {
