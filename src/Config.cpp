@@ -49,70 +49,99 @@ void Config::setup()
 
 void Config::run(bool *shouldClose)
 {
-	_initEpoll();
+    _initEpoll();
+    Logger::log("Waiting for connections...", INFO);
 
-	Logger::log("Waiting for connections...", INFO);
-	while (1)
-	{
-		int nfds = epoll_wait(_epollfd, _epollevents, MAX_EVENTS, 30000);
-		if (*shouldClose)
-			break;
-		if (nfds < 0)
-			throw std::runtime_error("epoll_wait error");
-		_checkForConnections(nfds);
-		_handleRequests(nfds);
-		_runRequests();
-	}
+    while (1)
+    {
+        Logger::log("Calling epoll_wait...", INFO);
+        int nfds = epoll_wait(_epollfd, _epollevents, MAX_EVENTS, 30000);
+
+        if (*shouldClose)
+            break;
+
+        if (nfds < 0)
+            throw std::runtime_error("epoll_wait error");
+
+        Logger::log("epoll_wait returned: " + Utils::toString(nfds) + " events", INFO);
+        _checkForConnections(nfds);
+        _handleRequests(nfds);
+        _runRequests();
+    }
 }
 
 void Config::_checkForConnections(size_t nfds)
 {
-	for (size_t i = 0; i < nfds; i++)
-	{
-		for (size_t j = 0; j < _servers.size(); j++)
-		{
-			if (_epollevents[i].data.fd == _servers[j]->getSockFd())
-			{
-				Client *cli = new Client(_servers[j]);
-				this->_addFd(cli->getFd(), EPOLLIN | EPOLLET);
-				_clients.push_back(cli);
-			}
-		}
-	}
+    for (size_t i = 0; i < nfds; i++)
+    {
+        for (size_t j = 0; j < _servers.size(); j++)
+        {
+            if (_epollevents[i].data.fd == _servers[j]->getSockFd())
+            {
+                Logger::log("New client connection detected", INFO);
+                Client *cli = new Client(_servers[j]);
+                this->_addFd(cli->getFd(), EPOLLIN | EPOLLET);
+                _clients.push_back(cli);
+                Logger::log("Client FD added to epoll: " + Utils::toString(cli->getFd()), INFO);
+            }
+        }
+    }
 }
 
 void Config::_handleRequests(size_t nfds)
 {
-	for (size_t i = 0; i < nfds; i++)
-	{
-		for (size_t j = 0; j < _clients.size(); j++)
-		{
-			if (_epollevents[i].data.fd == _clients[j]->getFd())
-			{
-				bool disconnect = false;
-				if (_epollevents[i].events & EPOLLIN)
-				{
-					if (_clients[j]->readRequest())
-						_modFd(_clients[j]->getFd(), EPOLLIN | EPOLLOUT | EPOLLET);
-					else
-						disconnect = true;
-				}
-				else if (_epollevents[i].events & EPOLLOUT)
-				{
-					disconnect = true;
-					if (_clients[j]->sendResponse())
-						Logger::log("Sent response to client", INFO);
-					else
-						Logger::log("Can't send response, Disconnecting...", ERROR);
-				}
-				if (disconnect)
-				{
-					delete _clients[j];
-					_clients.erase(_clients.begin() + j);
-				}
-			}
-		}
-	}
+    for (size_t i = 0; i < nfds; i++)
+    {
+        int fd = _epollevents[i].data.fd;
+        uint32_t events = _epollevents[i].events;
+
+        // Log received events
+        std::ostringstream oss;
+        oss << "Event received on FD: " << fd << " - ";
+        if (events & EPOLLIN) oss << "EPOLLIN ";
+        if (events & EPOLLOUT) oss << "EPOLLOUT ";
+        if (events & EPOLLERR) oss << "EPOLLERR ";
+        if (events & EPOLLHUP) oss << "EPOLLHUP ";
+        Logger::log(oss.str(), INFO);
+
+        for (size_t j = 0; j < _clients.size();)
+        {
+            if (fd == _clients[j]->getFd())
+            {
+                bool disconnect = false;
+                if (events & EPOLLIN)
+                {
+                    Logger::log("Reading request...", INFO);
+                    if (_clients[j]->readRequest()) {
+                        Logger::log("Request read successfully, modifying FD for EPOLLOUT", INFO);
+                        _modFd(fd, EPOLLIN | EPOLLOUT | EPOLLET);
+                    } else {
+                        Logger::log("Read failed, marking for disconnect", ERROR);
+                        disconnect = true;
+                    }
+                }
+                else if (events & EPOLLOUT)
+                {
+                    Logger::log("Writing response...", INFO);
+                    if (_clients[j]->sendResponse())
+                        Logger::log("Response sent successfully", INFO);
+                    else
+                        Logger::log("Send failed, marking for disconnect", ERROR);
+                    disconnect = true;
+                }
+
+                if (disconnect)
+                {
+                    Logger::log("Closing connection", INFO);
+					this->_delFd(_clients[j]->getFd());
+                    delete _clients[j];
+                    _clients.erase(_clients.begin() + j);
+					continue;
+                }
+            }
+			++j;
+        }
+    }
 }
 
 void Config::_runRequests(void)
@@ -160,6 +189,14 @@ void Config::_modFd(int fd, uint32_t events)
 		throw std::runtime_error("Failed to modify fd in epoll instance");
 }
 
+void Config::_delFd(int fd)
+{
+	if (fd < 0)
+		return ;
+    if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, NULL) < 0)
+        throw std::runtime_error("Failed to remove fd from epoll instance");
+}
+
 void Config::_initEpoll()
 {
 	_epollfd = epoll_create(1);
@@ -168,7 +205,7 @@ void Config::_initEpoll()
 	
 	for (size_t i = 0; i < _servers.size(); ++i)
 	{
-		_addFd(_servers[i]->getSockFd(), EPOLLIN | EPOLLOUT | EPOLLET);
+		_addFd(_servers[i]->getSockFd(), EPOLLIN | EPOLLET);
 	}
 
 	Logger::log("epoll instance created", DEBUG);

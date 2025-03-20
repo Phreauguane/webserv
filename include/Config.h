@@ -20,6 +20,7 @@ private:
 	void _initEpoll();
 	void _addFd(int, uint32_t);
 	void _modFd(int, uint32_t);
+	void _delFd(int);
 	void _checkForConnections(size_t);
 	void _handleRequests(size_t);
 	void _runRequests();

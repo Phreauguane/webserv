@@ -14,10 +14,11 @@ Client::Client(const Client& copy)
 
 Client::Client(Server *server) : _server(server), _fd(-1), _size(0)
 {
-	_id = RED + Utils::generateRandomString(8) + DEF;
 	_fd = accept(_server->getSockFd(), NULL, NULL);
 	if (_fd < 0)
 		throw std::runtime_error(_id + " Failed to accept connection to " + _server->getIp());
+	// _id = RED + Utils::generateRandomString(4) + " [" + Utils::toString(_fd) + "]" + DEF;
+	_id = "[" + Utils::toString(_fd) + "]";
 	_size = _server->getMaxBodySize();
 	Logger::log(_id + " Client connected to " + _server->getIp(), SUCCESS);
 }
