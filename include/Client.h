@@ -19,6 +19,7 @@ public:
 	bool readRequest();
 	bool sendResponse();
 	void addResponse(Response&);
+	void runRequests();
 	~Client();
 
 	class BufferOverflowException: public std::exception {

@@ -128,7 +128,8 @@ void Config::_handleRequests(size_t nfds)
                     Logger::log("Reading request...", INFO);
                     if (_clients[j]->readRequest()) {
                         // Exécuter la requête immédiatement après l'avoir lue
-                        _runRequests();
+                        // _runRequests();
+						_clients[j]->runRequests();
                         
                         Logger::log("Request read successfully, modifying FD for EPOLLOUT", INFO);
                         _modFd(fd, EPOLLIN | EPOLLOUT | EPOLLET);
@@ -159,14 +160,6 @@ void Config::_handleRequests(size_t nfds)
 			++j;
         }
     }
-}
-
-void Config::_runRequests(void)
-{
-	for (size_t i = 0; i < _servers.size(); i++)
-	{
-		_servers[i]->runRequests();
-	}
 }
 
 void Config::_setupServers()

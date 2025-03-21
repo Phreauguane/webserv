@@ -120,3 +120,8 @@ void Client::addResponse(Response &rep)
 {
 	_reps.push_back(rep);
 }
+
+void Client::runRequests()
+{
+	_server->runRequestsCli(this);
+}

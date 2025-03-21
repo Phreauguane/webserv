@@ -769,6 +769,8 @@ void Server::_handleSession(Request& req, Response& rep)
 	if (sessionId.empty() || _sessions.find(sessionId) == _sessions.end())
 	{
 		session = new Session();
+		if (_sessions[session->getId()])
+			delete _sessions[session->getId()];
 		_sessions[session->getId()] = session;
 		// Set cookie seulement si aucun cookie n'existe déjà
 		if (!hasCookie)
@@ -846,6 +848,28 @@ void Server::runRequests()
 
 			Response rep = this->executeRequest(*req);
 			req->client->addResponse(rep);
+		} catch (...) {
+			Logger::log("Failed to execute request", INFO);
+		}
+	}
+}
+
+void Server::runRequestsCli(Client *cli)
+{
+	for (int i = 0; i < MAX_REQUESTS_PER_CYCLE; i++)
+	{
+		try {
+			if (_reqs.size() == 0)
+				return;
+			Request *req = _reqs[0];
+			if (req->client != cli)
+				return;
+			_reqs.erase(_reqs.begin());
+
+			Response rep = this->executeRequest(*req);
+			
+			req->client->addResponse(rep);
+			delete req; // rends la memoire fdp
 		} catch (...) {
 			Logger::log("Failed to execute request", INFO);
 		}

@@ -15,6 +15,7 @@ enum req_type
 	T_NFD
 };
 
+class Client;
 class Request;
 class Response;
 class CGI;
@@ -36,6 +37,7 @@ public:
 	~Server();
 	void pushRequest(Request*);
 	void runRequests();
+	void runRequestsCli(Client*);
 	virtual bool hasSession(const std::string&);
 	virtual Session* getSession(const std::string&);
 	static bool sendResponse(Response&, int);
