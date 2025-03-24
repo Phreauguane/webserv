@@ -197,7 +197,7 @@ std::string Utils::readFile(const std::string& filename, bool useEpoll)
             content.append(buffer, bytesRead);
         }
         
-        if (bytesRead < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+        if (bytesRead < 0) {
             close(fd);
             throw std::runtime_error("Error reading file : " + filename);
         }
@@ -220,7 +220,7 @@ std::string Utils::readFD(int fd, bool isEpollManaged) {
         result.append(buffer, bytesRead);
     }
     
-    if (bytesRead == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
+    if (bytesRead == -1) {
         throw std::runtime_error("read error in Utils::readFD");
     }
     

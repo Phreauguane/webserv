@@ -52,10 +52,7 @@ bool Client::readRequest()
 	std::memset(buffer, 0, BUFFER_SIZE + 1);
 	ssize_t bytes = recv(_fd, buffer, BUFFER_SIZE, 0);
 	
-	if (bytes == 0) {
-		return false;
-	}
-	if (bytes < 0) {
+	if (bytes <= 0) {
 		return false;
 	}
 	
