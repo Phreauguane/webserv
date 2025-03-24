@@ -202,9 +202,18 @@ void Config::_modFd(int fd, uint32_t events)
 void Config::_delFd(int fd)
 {
 	if (fd < 0)
-		return ;
-    if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, NULL) < 0)
-        throw std::runtime_error("Failed to remove fd from epoll instance");
+		return;
+	
+	// Vérifier si le descripteur est toujours valide
+	struct stat statbuf;
+	if (fstat(fd, &statbuf) < 0) {
+		Logger::log("File descriptor " + Utils::toString(fd) + " already closed", INFO);
+		return;
+	}
+
+	if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, NULL) < 0) {
+		Logger::log("Failed to remove fd " + Utils::toString(fd) + " from epoll instance: " + strerror(errno), ERROR);
+	}
 }
 
 void Config::_initEpoll()

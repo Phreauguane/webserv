@@ -303,10 +303,16 @@ Response Server::executeRequest(Request& req)
 	
 	std::string path = _findResourcePath(req, loc);
 	
-	// Tenter d'exécuter le CGI
+	// Vérifier d'abord si le fichier existe
+	req_type type = _getType(path);
+	if (type == T_NFD) {
+		return _errorPage(404);
+	}
+	
+	// Tenter d'exécuter le CGI seulement si le fichier existe
 	if (req.method == "DELETE")
 		return _delete(req);
-	else if (cgiHandler->executeCGI(req, path, loc, rep))
+	else if (type == T_FILE && cgiHandler->executeCGI(req, path, loc, rep))
 		return rep;
 	Logger::log("Not CGI, running methods...", DEBUG);
 	if (req.method == "GET")
