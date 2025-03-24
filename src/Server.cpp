@@ -309,17 +309,47 @@ Response Server::executeRequest(Request& req)
 		return _errorPage(404);
 	}
 	
-	// Tenter d'exécuter le CGI seulement si le fichier existe
-	if (req.method == "DELETE")
+	// Vérification de la méthode
+	if (req.method != "GET" && req.method != "POST" && req.method != "DELETE") {
+		return _errorPage(405);
+	}
+
+	if (req.method == "DELETE") {
 		return _delete(req);
-	else if (type == T_FILE && cgiHandler->executeCGI(req, path, loc, rep))
-		return rep;
+	}
+
+	// Vérification des permissions et exécution du CGI si nécessaire
+	if (type == T_FILE) {
+		// Vérification des permissions de lecture
+		if (access(path.c_str(), R_OK) != 0) {
+			return _errorPage(403);
+		}
+		else {
+			// Vérification du Content-Type pour POST
+			if (req.method == "POST" && req.attributes.find("Content-Type") == req.attributes.end()) {
+				return _errorPage(400);
+			}
+
+			// Tentative d'exécution du CGI
+			try {
+				if (cgiHandler->executeCGI(req, path, loc, rep)) {
+					return rep;
+				}
+			} catch (const std::exception& e) {
+				Logger::log("CGI execution failed: " + std::string(e.what()), ERROR);
+				return _errorPage(500);
+			}
+		}
+	}
+
 	Logger::log("Not CGI, running methods...", DEBUG);
 	if (req.method == "GET")
 		return _get(req);
 	if (req.method == "POST")
 		return _post(req);
-	throw std::runtime_error("Unable to execute request");
+	
+	// Si on arrive ici, c'est qu'il y a un problème inattendu
+	return _errorPage(500);
 }
 
 req_type Server::_getType(const std::string& path)
@@ -364,37 +394,69 @@ std::string Server::_findResourcePath(const Request &req, Location *loc)
 
 Response Server::_get(const Request& req)
 {
-	Location *loc = _getLocation(req.path);
-	// verify method
-	std::string method = "GET";
 	Response rep;
-	if (!Utils::searchFor(loc->_allowed_methods, method))
-		return rep;
-	std::string path = _findResourcePath(req, loc);
-	try
-	{
-		req_type type = _getType(path);
-		if (type == T_NFD)
+	rep.http = "HTTP/1.1";
+
+	try {
+		// 1. Vérification de la location
+		Location *loc = _getLocation(req.path);
+		if (!loc) {
 			return _errorPage(404);
-		else if (type == T_FILE)
-			return _readFile(req, path);
-		else if (req.path[req.path.size() - 1] != '/')
-			return _errorPage(301);
-		else if (loc->_index.size() > 0)
-		{
-			std::string idx_path = path + "/" + loc->_index;
-			if (_getType(idx_path) != T_FILE)
-				return (loc->_auto_index ? _autoIndex(path) : _errorPage(403));
-			return _readFile(req, idx_path);
 		}
-		else if (loc->_auto_index)
-			return _autoIndex(path);
+
+		// 2. Vérification des permissions de méthode
+		if (!Utils::searchFor(loc->_allowed_methods, std::string("GET"))) {
+			return _errorPage(405);
+		}
+
+		// 3. Construction et vérification du chemin
+		std::string path = _findResourcePath(req, loc);
+		req_type type = _getType(path);
+
+		// 4. Vérification des permissions de lecture
+		if (access(path.c_str(), R_OK) != 0 && type != T_NFD) {
+			return _errorPage(403);
+		}
+
+		// 5. Gestion des différents types de ressources
+		if (type == T_NFD) {
+			return _errorPage(404);
+		}
+		else if (type == T_FILE) {
+			return _readFile(req, path);
+		}
+		else if (type == T_DIR) {
+			// Si le chemin ne se termine pas par '/', redirection
+			if (req.path[req.path.size() - 1] != '/') {
+				return _errorPage(301);
+			}
+
+			// Vérification de l'index
+			if (!loc->_index.empty()) {
+				std::string idx_path = path + "/" + loc->_index;
+				if (_getType(idx_path) == T_FILE) {
+					// Vérification des permissions de lecture pour l'index
+					if (access(idx_path.c_str(), R_OK) != 0) {
+						return _errorPage(403);
+					}
+					return _readFile(req, idx_path);
+				}
+			}
+
+			// Si pas d'index valide, vérifier l'auto-index
+			if (loc->_auto_index) {
+				return _autoIndex(path);
+			}
+			return _errorPage(403);
+		}
+
+		// Si on arrive ici, c'est qu'il y a un problème inattendu
+		return _errorPage(500);
+
+	} catch(const std::exception& e) {
+		Logger::log("GET error: " + std::string(e.what()), ERROR);
+		return _errorPage(500);
 	}
-	catch(const std::runtime_error& e)
-	{
-		Logger::log(e.what(), ERROR);
-	}
-	return rep;
 }
 
 std::string extractFilename(const std::string& input)
