@@ -481,40 +481,22 @@ Response Server::_post(const Request& req)
 		// Vérification de la location
 		Location *loc = _getLocation(req.path);
 		if (!loc) {
-			rep.status = 404;
-			rep.phrase = "Not Found";
-			rep.body = "Location not found";
-			rep.ready = true;
-			return rep;
+			return _errorPage(404);
 		}
 
 		// Vérification des permissions de méthode
-		std::string method = "POST";
-		if (!Utils::searchFor(loc->_allowed_methods, method)) {
-			rep.status = 405;
-			rep.phrase = "Method Not Allowed";
-			rep.body = "POST method not allowed for this location";
-			rep.attributes["Allow"] = "GET, DELETE";
-			rep.ready = true;
-			return rep;
+		if (!Utils::searchFor(loc->_allowed_methods, std::string("POST"))) {
+			return _errorPage(405);
 		}
 
 		// Vérification de la taille du body
 		if (req.body.size() > getMaxBodySize()) {
-			rep.status = 413;
-			rep.phrase = "Payload Too Large";
-			rep.body = "Request entity too large";
-			rep.ready = true;
-			return rep;
+			return _errorPage(413);
 		}
 
 		// Vérification du Content-Type
 		if (req.attributes.find("Content-Type") == req.attributes.end()) {
-			rep.status = 400;
-			rep.phrase = "Bad Request";
-			rep.body = "Content-Type header is required";
-			rep.ready = true;
-			return rep;
+			return _errorPage(400);
 		}
 
 		// Construction du chemin complet
@@ -523,44 +505,26 @@ Response Server::_post(const Request& req)
 		// Vérification du dossier parent
 		std::string parent_dir = path.substr(0, path.find_last_of("/"));
 		if (!Utils::fileExists(parent_dir)) {
-			rep.status = 409;
-			rep.phrase = "Conflict";
-			rep.body = "Parent directory does not exist";
-			rep.ready = true;
-			return rep;
+			return _errorPage(409);
 		}
 
 		// Vérification des permissions d'écriture
 		if (access(parent_dir.c_str(), W_OK) != 0) {
-			rep.status = 403;
-			rep.phrase = "Forbidden";
-			rep.body = "Permission denied";
-			rep.ready = true;
-			return rep;
+			return _errorPage(403);
 		}
 
 		// Traitement du fichier
 		if (Utils::fileExists(path)) {
-			// Le fichier existe déjà, on le met à jour
 			std::ofstream file(path.c_str(), std::ios::binary);
 			if (!file.is_open()) {
-				rep.status = 500;
-				rep.phrase = "Internal Server Error";
-				rep.body = "Failed to open file for writing";
-				rep.ready = true;
-				return rep;
+				return _errorPage(500);
 			}
 			file.write(req.body.c_str(), req.body.size());
 			file.close();
 		} else {
-			// Création d'un nouveau fichier
 			std::ofstream file(path.c_str(), std::ios::binary);
 			if (!file.is_open()) {
-				rep.status = 500;
-				rep.phrase = "Internal Server Error";
-				rep.body = "Failed to create file";
-				rep.ready = true;
-				return rep;
+				return _errorPage(500);
 			}
 			file.write(req.body.c_str(), req.body.size());
 			file.close();
@@ -576,10 +540,7 @@ Response Server::_post(const Request& req)
 
 	} catch (const std::exception& e) {
 		Logger::log("POST error: " + std::string(e.what()), ERROR);
-		rep.status = 500;
-		rep.phrase = "Internal Server Error";
-		rep.body = "An unexpected error occurred";
-		rep.ready = true;
+		return _errorPage(500);
 	}
 	
 	return rep;
@@ -595,22 +556,12 @@ Response Server::_delete(Request& req)
 		Location *loc = _getLocation(req.path);
 		std::cout << req.path << std::endl;
 		if (!loc) {
-			rep.status = 404;
-			rep.phrase = "Not Found";
-			rep.body = "Location not found";
-			rep.ready = true;
-			return rep;
+			return _errorPage(404);
 		}
 
 		// Vérification des permissions de méthode
-		std::string method = "DELETE";
-		if (!Utils::searchFor(loc->_allowed_methods, method)) {
-			rep.status = 405;
-			rep.phrase = "Method Not Allowed";
-			rep.body = "DELETE method not allowed for this location";
-			rep.attributes["Allow"] = "GET, POST";
-			rep.ready = true;
-			return rep;
+		if (!Utils::searchFor(loc->_allowed_methods, std::string("DELETE"))) {
+			return _errorPage(405);
 		}
 
 		// Construction du chemin complet
@@ -618,41 +569,25 @@ Response Server::_delete(Request& req)
 		
 		// Vérification de l'existence du fichier
 		if (!Utils::fileExists(path)) {
-			rep.status = 404;
-			rep.phrase = "Not Found";
-			rep.body = "File not found";
-			rep.ready = true;
-			return rep;
+			return _errorPage(404);
 		}
 
 		// Vérification du type (ne pas supprimer les dossiers)
 		struct stat path_stat;
 		if (stat(path.c_str(), &path_stat) == 0) {
 			if (S_ISDIR(path_stat.st_mode)) {
-				rep.status = 403;
-				rep.phrase = "Forbidden";
-				rep.body = "Cannot delete directories";
-				rep.ready = true;
-				return rep;
+				return _errorPage(403);
 			}
 		}
 
 		// Vérification des permissions
 		if (access(path.c_str(), W_OK) != 0) {
-			rep.status = 403;
-			rep.phrase = "Forbidden";
-			rep.body = "Permission denied";
-			rep.ready = true;
-			return rep;
+			return _errorPage(403);
 		}
 
 		// Tentative de suppression
 		if (remove(path.c_str()) != 0) {
-			rep.status = 500;
-			rep.phrase = "Internal Server Error";
-			rep.body = "Failed to delete file";
-			rep.ready = true;
-			return rep;
+			return _errorPage(500);
 		}
 
 		// Succès
@@ -665,10 +600,7 @@ Response Server::_delete(Request& req)
 		
 	} catch (const std::exception& e) {
 		Logger::log("Delete error: " + std::string(e.what()), ERROR);
-		rep.status = 500;
-		rep.phrase = "Internal Server Error";
-		rep.body = "An unexpected error occurred";
-		rep.ready = true;
+		return _errorPage(500);
 	}
 	
 	return rep;
