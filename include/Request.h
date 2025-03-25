@@ -21,6 +21,7 @@ public:
 	Request(const std::string&, Client*);
 	void parseRequest();
 	void parseBody();
+	void parseMultipartFormData();
 	void logData();
 	Request& operator=(const Request&);
 	~Request();

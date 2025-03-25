@@ -577,41 +577,53 @@ Response Server::_delete(Request& req)
 	rep.http = "HTTP/1.1";
 	
 	try {
-		// Vérification de la location
+		// Log du chemin de la requête
+		Logger::log("DELETE request path: " + req.path, DEBUG);
+		
 		Location *loc = _getLocation(req.path);
-		std::cout << req.path << std::endl;
 		if (!loc) {
+			Logger::log("Location not found for path: " + req.path, ERROR);
 			return _errorPage(404);
 		}
+		
+		// Log des méthodes autorisées
+		Logger::log("Allowed methods for location: ", DEBUG);
+		for (size_t i = 0; i < loc->_allowed_methods.size(); i++) {
+			Logger::log(" - " + loc->_allowed_methods[i], DEBUG);
+		}
 
-		// Vérification des permissions de méthode
 		if (!Utils::searchFor(loc->_allowed_methods, std::string("DELETE"))) {
+			Logger::log("DELETE method not allowed for this location", ERROR);
 			return _errorPage(405);
 		}
 
-		// Construction du chemin complet
 		std::string path = _findResourcePath(req, loc);
+		Logger::log("Full resource path: " + path, DEBUG);
 		
-		// Vérification de l'existence du fichier
 		if (!Utils::fileExists(path)) {
+			Logger::log("File not found: " + path, ERROR);
 			return _errorPage(404);
 		}
 
-		// Vérification du type (ne pas supprimer les dossiers)
 		struct stat path_stat;
 		if (stat(path.c_str(), &path_stat) == 0) {
 			if (S_ISDIR(path_stat.st_mode)) {
+				Logger::log("Cannot delete directory: " + path, ERROR);
 				return _errorPage(403);
 			}
 		}
 
-		// Vérification des permissions
+		// Log des permissions actuelles du fichier
+		Logger::log("Checking write permissions for: " + path, DEBUG);
 		if (access(path.c_str(), W_OK) != 0) {
+			Logger::log("No write permission for file: " + path + " (errno: " + Utils::toString(errno) + ")", ERROR);
 			return _errorPage(403);
 		}
 
-		// Tentative de suppression
+		// Log de la tentative de suppression
+		Logger::log("Attempting to delete file: " + path, DEBUG);
 		if (remove(path.c_str()) != 0) {
+			Logger::log("Failed to delete file: " + path + " (errno: " + Utils::toString(errno) + ")", ERROR);
 			return _errorPage(500);
 		}
 

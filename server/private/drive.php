@@ -18,6 +18,30 @@ function formatBytes($bytes) {
     }
     return '0 B';
 }
+
+// Ajouter cette partie au début du fichier, après les vérifications de session
+if (isset($_GET['download']) && !empty($_GET['download'])) {
+    $filename = basename($_GET['download']);
+    $filepath = 'uploads/' . $filename;
+    
+    if (file_exists($filepath)) {
+        // Détection du type MIME
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime_type = finfo_file($finfo, $filepath);
+        finfo_close($finfo);
+        
+        // Headers pour le téléchargement
+        header('Content-Type: ' . $mime_type);
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . filesize($filepath));
+        header('Cache-Control: no-cache, must-revalidate');
+        header('Pragma: public');
+        
+        // Envoi du fichier
+        readfile($filepath);
+        exit;
+    }
+}
 ?>
 
 <div class="container">
@@ -36,10 +60,13 @@ function formatBytes($bytes) {
                     if (is_file($filePath)) {
                         $fileSize = filesize($filePath);
                         echo '<li class="file-item">';
+                        echo '<div class="file-info">';
                         echo '<span class="file-name">' . htmlspecialchars($file) . '</span>';
                         echo '<span class="file-size">' . formatBytes($fileSize) . '</span>';
-                        echo '<div class="file-action">';
-                        echo '<button onclick="deleteItem(\'' . htmlspecialchars($file) . '\')">Supprimer</button>';
+                        echo '</div>';
+                        echo '<div class="file-actions">';
+                        echo '<a href="drive.php?download=' . urlencode($file) . '" class="btn btn-download">Télécharger</a>';
+                        echo '<button onclick="deleteItem(\'' . htmlspecialchars($file) . '\')" class="btn btn-delete">Supprimer</button>';
                         echo '</div>';
                         echo '</li>';
                     }
@@ -52,22 +79,84 @@ function formatBytes($bytes) {
     </ul>
 </div>
 
+<style>
+.file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    margin: 10px 0;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.file-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.file-size {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.file-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    padding: 8px 15px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.btn-download {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.btn-download:hover {
+    background-color: #45a049;
+}
+
+.btn-delete {
+    background-color: #f44336;
+    color: white;
+}
+
+.btn-delete:hover {
+    background-color: #da190b;
+}
+</style>
+
 <script>
 function deleteItem(filename) {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) {
-        fetch('/private/uploads/' + filename, {
-            method: 'DELETE',
+        fetch('delete_file.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'file=' + encodeURIComponent(filename)
         })
-        .then(response => {
-            if (response.ok) {
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
                 location.reload();
             } else {
                 alert('Erreur lors de la suppression du fichier');
             }
-        })
-        .catch(error => {
-            console.error('Erreur:', error);
-            alert('Erreur lors de la suppression du fichier');
         });
     }
 }
