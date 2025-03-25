@@ -1,5 +1,6 @@
 #include "Location.h"
 #include "Utils.h"
+#include "Logger.h"
 
 Location::Location()
 {
@@ -83,6 +84,10 @@ void Location::parseLine(const std::vector<std::string>& strs)
 		for (size_t i = 1; i < strs.size(); i++)
 		{
 			_allowed_methods.push_back(strs[i]);
+		}
+		Logger::log("Location " + _name + " allowed methods: ", DEBUG);
+		for (size_t i = 0; i < _allowed_methods.size(); i++) {
+			Logger::log(" - " + _allowed_methods[i], DEBUG);
 		}
 	}
 	else if (strs[0] == "enable_cgi")

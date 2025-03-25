@@ -330,6 +330,11 @@ Response Server::executeRequest(Request& req)
 				return _errorPage(400);
 			}
 
+			// Ajouter la vérification de la méthode avant d'exécuter le CGI
+			if (!Utils::searchFor(loc->_allowed_methods, req.method)) {
+				return _errorPage(405);
+			}
+
 			// Tentative d'exécution du CGI
 			try {
 				if (cgiHandler->executeCGI(req, path, loc, rep)) {
@@ -340,6 +345,13 @@ Response Server::executeRequest(Request& req)
 				return _errorPage(500);
 			}
 		}
+	}
+
+	Logger::log("Request method: " + req.method, DEBUG);
+	Logger::log("Location: " + loc->getName(), DEBUG);
+	Logger::log("Allowed methods: ", DEBUG);
+	for (size_t i = 0; i < loc->_allowed_methods.size(); i++) {
+		Logger::log(" - " + loc->_allowed_methods[i], DEBUG);
 	}
 
 	Logger::log("Not CGI, running methods...", DEBUG);
@@ -398,27 +410,40 @@ Response Server::_get(const Request& req)
 	rep.http = "HTTP/1.1";
 
 	try {
-		// 1. Vérification de la location
+		// Obtenir la location correspondante
 		Location *loc = _getLocation(req.path);
 		if (!loc) {
 			return _errorPage(404);
 		}
 
-		// 2. Vérification des permissions de méthode
+		// Vérifier si une redirection est configurée
+		if (!loc->_return.empty()) {
+			// Parser la ligne de return
+			std::vector<std::string> return_parts = Utils::splitString(loc->_return, " ");
+			if (return_parts.size() >= 3 && return_parts[0] == "return") {
+				rep.status = std::atoi(return_parts[1].c_str());
+				rep.attributes["Location"] = return_parts[2];
+				rep.phrase = "Moved Permanently";
+				rep.ready = true;
+				return rep;
+			}
+		}
+
+		// Vérification des permissions de méthode
 		if (!Utils::searchFor(loc->_allowed_methods, std::string("GET"))) {
 			return _errorPage(405);
 		}
 
-		// 3. Construction et vérification du chemin
+		// Construction et vérification du chemin
 		std::string path = _findResourcePath(req, loc);
 		req_type type = _getType(path);
 
-		// 4. Vérification des permissions de lecture
+		// Vérification des permissions de lecture
 		if (access(path.c_str(), R_OK) != 0 && type != T_NFD) {
 			return _errorPage(403);
 		}
 
-		// 5. Gestion des différents types de ressources
+		// Gestion des différents types de ressources
 		if (type == T_NFD) {
 			return _errorPage(404);
 		}
