@@ -88,6 +88,7 @@ void Server::pushRequest(Request *req)
 void Server::_loadTypes()
 {
 	_types[".html"] = "text/html";
+	_types[".php"] = "application/x-httpd-php";
 	_types[".htm"] = "text/html";
 	_types[".shtml"] = "text/html";
 	_types[".css"] = "text/css";
@@ -744,6 +745,7 @@ Response Server::_readFile(const Request& req, const std::string& path)
 	(void)req;
 
 	// Utiliser epoll pour lire les fichiers servis aux clients
+	_loadTypes();
 	std::string content = Utils::readFile(path, true);
 	Response rep;
 	rep.body = content;
@@ -753,23 +755,15 @@ Response Server::_readFile(const Request& req, const std::string& path)
 	else
 	{
 		std::string ext = &(path[pos]);
-		if (ext == ".html")
-			rep.attributes["Content-Type"] = "text/html";
-		else if (ext == ".css")
-			rep.attributes["Content-Type"] = "text/css";
-		else if (ext == ".js")
-		{
-			Logger::log("JS file", DEBUG);
-			rep.attributes["Content-Type"] = "application/javascript";
-		}
+		if (_types.find(ext) != _types.end())
+			rep.attributes["Content-Type"] = _types[ext];
 		else
-			rep.attributes["Content-Type"] = ext;
+			rep.attributes["Content-Type"] = "application/octet-stream";  // type par défaut
 	}
 	Logger::log("Content-Type : " + rep.attributes["Content-Type"], DEBUG);
 	rep.http = "HTTP/1.1";
 	rep.status = 200;
 	rep.phrase = "OK";
-	//rep.attributes["Connection"] = "close";
 	rep.ready = true;
 	return rep;
 }
