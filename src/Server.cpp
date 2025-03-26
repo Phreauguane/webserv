@@ -320,11 +320,29 @@ Response Server::executeRequest(Request& req)
 
 	// Vérification des permissions et exécution du CGI si nécessaire
 	if (type == T_FILE) {
+		
+		// Sauvegarder le chemin original avec les paramètres
+		std::string originalPath = path;
+		
+		// Nettoyer le chemin en retirant les paramètres GET
+		size_t queryPos = path.find("?");
+		if (queryPos != std::string::npos) {
+			path = path.substr(0, queryPos);
+		}
+		Logger::log("path : " + path, DEBUG);
+		
+
+		// Corriger le log de access()
+		int access_result = access(path.c_str(), R_OK);
+		Logger::log("access result: " + Utils::toString(access_result) + " (errno: " + Utils::toString(errno) + ")", DEBUG);
+		
 		// Vérification des permissions de lecture
 		if (access(path.c_str(), R_OK) != 0) {
 			return _errorPage(403);
 		}
+		// Restaurer le chemin original avec les paramètres
 		else {
+			path = originalPath;
 			// Vérification du Content-Type pour POST
 			if (req.method == "POST" && req.attributes.find("Content-Type") == req.attributes.end()) {
 				return _errorPage(400);

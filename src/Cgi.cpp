@@ -333,6 +333,14 @@ Response CGI::_execPHP(const std::string& path, Request& req)
 	char *args[] = {(char*)php_cgi.c_str(), (char*)path.c_str(), NULL};
 	Logger::log("path : " + std::string(args[0]), DEBUG);
 
+	// Nettoyer le chemin en retirant les paramètres GET
+	std::string clean_path = path;
+	size_t queryPos = clean_path.find("?");
+	if (queryPos != std::string::npos) {
+		clean_path = clean_path.substr(0, queryPos);
+	}
+	Logger::log("clean path : " + clean_path, DEBUG);
+
 	// Récupérer la session depuis le serveur
 	std::string session_id = "";
 	Session* session = NULL;
@@ -354,19 +362,21 @@ Response CGI::_execPHP(const std::string& path, Request& req)
 
 	// Préparer la query et calculer sa taille
 	std::string query = _getQuery(req);
+	Logger::log("query : " + query, DEBUG);
+	Logger::log("path : " + path, DEBUG);
 	
 	// Variables d'environnement pour l'upload
 	std::string request_method = "REQUEST_METHOD=" + req.method;
 	std::string content_type = "CONTENT_TYPE=" + req.attributes["Content-Type"];
 	// Utiliser la taille de la query au lieu de req.body.size()
 	std::string content_length = "CONTENT_LENGTH=" + Utils::toString(query.length());
-	std::string script_filename = "SCRIPT_FILENAME=" + path;
+	std::string script_filename = "SCRIPT_FILENAME=" + clean_path;
 	std::string session_env = "HTTP_COOKIE=PHPSESSID=" + session_id;
 	std::string upload_tmp_dir = "UPLOAD_TMP_DIR=/tmp";
 	std::string gateway_interface = "GATEWAY_INTERFACE=CGI/1.1";
 	std::string server_protocol = "SERVER_PROTOCOL=HTTP/1.1";
-	std::string document_root = "DOCUMENT_ROOT=" + path.substr(0, path.find_last_of("/"));
-	std::string script_name = "SCRIPT_NAME=" + path.substr(path.find_last_of("/"));
+	std::string document_root = "DOCUMENT_ROOT=" + clean_path.substr(0, clean_path.find_last_of("/"));
+	std::string script_name = "SCRIPT_NAME=" + clean_path.substr(clean_path.find_last_of("/"));
 	std::string query_string = "QUERY_STRING=" + query;
 
 	// Log des informations importantes
