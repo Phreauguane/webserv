@@ -33,7 +33,14 @@ int	main(int ac, char **av, char **env)
 	Logger::setMinLogLevel(LOG_LEVEL);
 	std::string config_file = "default.conf";
 	if (ac == 2)
+	{
 		config_file = av[1];
+		if (access(av[1], R_OK) != 0)
+		{
+			std::cout << "Error: Cannot read configuration file" << std::endl;
+			return 1;
+		}
+	}
 	if (ac > 2)
 	{
 		Logger::log("Too much arguments", ERROR);

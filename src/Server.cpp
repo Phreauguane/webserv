@@ -712,8 +712,13 @@ Response Server::_errorPage(unsigned int code)
 	else
 	{
 		std::stringstream ss;
-		ss << "<html><head><title>Error " << code << "</title></head>";
-		ss << "<body><h1>Error " << code << "</h1></body></html>";
+		ss << "<!DOCTYPE html>\n";
+		ss << "<html><head>\n";
+		ss << "<title>Error " << code << "</title>\n";
+		ss << "<style>body{font-family:Arial,sans-serif;text-align:center;padding:40px;}</style>\n";
+		ss << "</head><body>\n";
+		ss << "<h1>Error " << code << "</h1>\n";
+		ss << "</body></html>";
 		rep.body = ss.str();
 	}
 	rep.attributes["Content-Type"] = "text/html";

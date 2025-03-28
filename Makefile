@@ -21,8 +21,15 @@ SRC		=	main.cpp			\
 			src/Session.cpp		\
 			src/ISessionManager.cpp
 
-all		:
-	$(CPP) -I $(INCLUDE) $(DEBUG_MODE) $(SRC) -o $(NAME)
+OBJ		=	$(SRC:.cpp=.o)
+
+%.o: %.cpp
+	$(CPP) -I $(INCLUDE) -c $< -o $@
+
+all		:	$(NAME)
+
+$(NAME):	$(OBJ)
+	$(CPP) $(OBJ) -o $(NAME)
 
 vg		:
 	$(CPP) -I $(INCLUDE) -g3 $(DEBUG_MODE) $(SRC) -o $(NAME)
@@ -31,9 +38,10 @@ debug	:
 	$(CPP) -I $(INCLUDE) $(DEBUG_MODE) $(SRC) -o $(NAME)
 
 clean	:
-	rm -f $(NAME)
+	rm -f $(OBJ)
 	rm -f *.log
 
 fclean	:	clean
+	rm -f $(NAME)
 
 re		:	fclean all
