@@ -1,9 +1,10 @@
 #include "Utils.h"
 #include "Cgi.h"
+#include "Server.h"
 
 CGI::CGI() : _stdout(dup(STDOUT_FILENO)), _server(NULL) {}
 
-CGI::CGI(ISessionManager& server) : _stdout(dup(STDOUT_FILENO)), _server(&server) {}
+CGI::CGI(Server *server) : _stdout(dup(STDOUT_FILENO)), _server(server) {}
 
 CGI::CGI(const CGI& copy)
 {
@@ -19,7 +20,6 @@ CGI& CGI::operator=(const CGI& copy)
 {
 	_stdout = copy._stdout;
 	_env = copy._env;
-	_server = copy._server;
 	return *this;
 }
 
@@ -56,6 +56,11 @@ void CGI::_executeCommand(const std::string& cmd, const std::string& query, char
 		// Redirection de stdout avec vérification
 		if (dup2(pipefd[1], STDOUT_FILENO) == -1) {
 			throw std::runtime_error("Failed to redirect stdout");
+		}
+
+		// Redirection de stderr avec vérification
+		if (dup2(pipefd[1], STDERR_FILENO) == -1) {
+			throw std::runtime_error("Failed to redirect stderr");
 		}
 
 		// Création et vérification du pipe pour stdin
@@ -200,19 +205,68 @@ Response CGI::_parseOutputPHP(std::string& output, Request& req)
 	return rep;
 }
 
-Response handleParentProcessPHP(int* pipefd, pid_t pid, CGI* cgi, Request& req)
-{
-	close(pipefd[1]);
-	std::string result = Utils::readFD(pipefd[0], true);
-	close(pipefd[0]);
+// Response handleParentProcessToutCourt(int* pipefd, pid_t pid, CGI* cgi, Request& req)
+// {
+// 	close(pipefd[1]);
+// 	std::string result = Utils::readFD(pipefd[0], true);
+// 	close(pipefd[0]);
 
-	//Logger::log(result, TEXT);
+// 	//Logger::log(result, TEXT);
 	
-	int status;
-	waitpid(pid, &status, 0);
-	if (WIFEXITED(status))
-			Logger::log("Child process code : " + Utils::toString(WEXITSTATUS(status)), DEBUG);
-	return cgi->_parseOutputPHP(result, req);
+// 	int status;
+// 	waitpid(pid, &status, 0);
+// 	if (WIFEXITED(status))
+// 			Logger::log("Child process code : " + Utils::toString(WEXITSTATUS(status)), DEBUG);
+// 	return cgi->_parseOutputPHP(result, req);
+// }
+
+#define TIMEOUT_SEC 5  // Timeout in seconds
+
+Response handleParentProcessToutCourt(int* pipefd, pid_t pid, CGI* cgi, Request& req)
+{
+    close(pipefd[1]);
+
+	const long start = time(NULL);
+
+    std::string result;
+    int status;
+
+    while (true) {
+        pid_t waitPid = waitpid(pid, &status, WNOHANG);
+
+        if (waitPid == -1) {
+            throw std::runtime_error("Error occurred while waiting for child process");
+        }
+
+        if (waitPid == pid) {
+            if (WIFEXITED(status)) {
+                Logger::log("Child process code: " + Utils::toString(WEXITSTATUS(status)), DEBUG);
+            } else if (WIFSIGNALED(status)) {
+                Logger::log("Child process was terminated by signal: " + Utils::toString(WTERMSIG(status)), DEBUG);
+            }
+            break;
+        }
+
+		long now = time(NULL);
+        if ((now - start) > TIMEOUT_SEC) {
+            kill(pid, SIGINT);
+            throw std::runtime_error("Timeout");
+        }
+
+        usleep(100000);
+    }
+
+    // Read the output from the pipe after the child process finishes
+    try {
+        result = Utils::readFD(pipefd[0], true);
+        close(pipefd[0]);
+    } catch (const std::exception& e) {
+        close(pipefd[0]);
+        throw std::runtime_error("Error reading from pipe: " + std::string(e.what()));
+    }
+
+    // Return the parsed output from PHP
+    return cgi->_parseOutputPHP(result, req);
 }
 
 std::string CGI::_getQuery(const Request& req)
@@ -427,8 +481,19 @@ Response CGI::_execPHP(const std::string& path, Request& req)
 			exit(EXIT_FAILURE);
 		}
 	}
-	else
-		return handleParentProcessPHP(pipefd, pid, this, req);
+	else {
+		try {
+			return handleParentProcessToutCourt(pipefd, pid, this, req);
+		} catch (const std::runtime_error &e) {
+			std::string str = e.what();
+			if (str == "Timeout") {
+				Logger::log("Timeout", INFO);
+				return _server->errorPage(408);
+			}
+			Logger::log("CGI Error: " + str, ERROR);
+			return _server->errorPage(500);
+		}
+	}
 	Response rep;
 	return rep;
 }
@@ -480,8 +545,7 @@ Response CGI::_execPython(const std::string& path, Request& req)
 		throw std::runtime_error("Unable to fork");
 	else if (pid == 0)
 	{
-		try
-		{
+		try {
 			_executeCommand(python_exec, query, args, envp, pipefd);
 		}
 		catch(const std::runtime_error& e)
@@ -490,8 +554,19 @@ Response CGI::_execPython(const std::string& path, Request& req)
 			exit(EXIT_FAILURE);
 		}
 	}
-	else
-		return handleParentProcessPHP(pipefd, pid, this, req);
+	else {
+		try {
+			return handleParentProcessToutCourt(pipefd, pid, this, req);
+		} catch (const std::runtime_error &e) {
+			std::string str = e.what();
+			if (str == "Timeout") {
+				Logger::log("Timeout", INFO);
+				return _server->errorPage(408);
+			}
+			Logger::log("CGI Error: " + str, ERROR);
+			return _server->errorPage(500);
+		}
+	}
 	Response rep;
 	return rep;
 }
@@ -580,9 +655,21 @@ Response CGI::_execC(const std::string& path, Request& req)
 	}
 	else
 	{
-		Response rep = handleParentProcessPHP(pipefd, pid, this, req);
-		remove(executable.c_str()); // Supprimer l'exécutable après utilisation
-		return rep;
+		Response rep;
+
+		try {
+			rep = handleParentProcessToutCourt(pipefd, pid, this, req);
+			remove(executable.c_str()); // Supprimer l'exécutable après utilisation
+			return rep;
+		} catch (const std::runtime_error &e) {
+			std::string str = e.what();
+			if (str == "Timeout") {
+				Logger::log("Timeout", INFO);
+				return _server->errorPage(408);
+			}
+			Logger::log("CGI Error: " + str, ERROR);
+			return _server->errorPage(500);
+		}
 	}
 	Response rep;
 	return rep;

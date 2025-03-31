@@ -9,18 +9,18 @@ void sigHandler(int signum)
 	if (signum == SIGINT)
 	{
 		std::cout << "\b\b";
-		Logger::log("----------------", INFO);
-		Logger::log(" Closing server ", INFO);
-		Logger::log("----------------", INFO);
+		Logger::log("-----------------------", INFO);
+		Logger::log("     Closing server    ", INFO);
+		Logger::log("-----------------------", INFO);
 		shouldClose = true;
 		shouldRestart = false;
 	}
 	if (signum == SIGTSTP)
 	{
 		std::cout << "\b\b";
-		Logger::log("-------------------", SUCCESS);
-		Logger::log(" Restarting server ", SUCCESS);
-		Logger::log("-------------------", SUCCESS);
+		Logger::log("-----------------------", SUCCESS);
+		Logger::log("   Restarting server   ", SUCCESS);
+		Logger::log("-----------------------", SUCCESS);
 		shouldClose = true;
 		shouldRestart = true;
 	}
@@ -46,7 +46,13 @@ int	main(int ac, char **av, char **env)
 		Logger::log("Too much arguments", ERROR);
 		return -1;
 	}
-	
+
+	Logger::log("-----------------------", SUCCESS);
+	Logger::log("        WEBSERV        ", SUCCESS);
+	Logger::log("  - [CTRL C]  close -  ", SUCCESS);
+	Logger::log("  - [CTRL Z] reload -  ", SUCCESS);
+	Logger::log("-----------------------", SUCCESS);
+
 	while (shouldRestart)
 	{
 		shouldClose = false;
@@ -63,6 +69,7 @@ int	main(int ac, char **av, char **env)
 			shouldRestart = false;
 		}
 	}
+	Logger::logErrors();
 	Logger::saveLog();
 	return 0;
 }

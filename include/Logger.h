@@ -40,4 +40,5 @@ namespace Logger
 	void setMinLogLevel(log_level);
 	void setLogFile(const std::string&);
 	void saveLog();
+	void logErrors();
 }

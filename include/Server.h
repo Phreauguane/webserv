@@ -6,7 +6,6 @@
 #include "Request.h"
 #include "Response.h"
 #include "Session.h"
-#include "ISessionManager.h"
 
 enum req_type
 {
@@ -20,7 +19,7 @@ class Request;
 class Response;
 class CGI;
 
-class Server : public ISessionManager
+class Server
 {
 public:
 	Server();
@@ -38,17 +37,17 @@ public:
 	void pushRequest(Request*);
 	void runRequests();
 	void runRequestsCli(Client*);
-	virtual bool hasSession(const std::string&);
-	virtual Session* getSession(const std::string&);
+	bool hasSession(const std::string&);
+	Session* getSession(const std::string&);
 	static bool sendResponse(Response&, int);
 	bool validateBody(const std::string&);
+	Response errorPage(unsigned int);
 private:
 	Response _get(const Request&);
 	Response _post(const Request&);
 	Response _delete(Request&);
 	Response _readFile(const Request&, const std::string&);
 	Response _autoIndex(const std::string&);
-	Response _errorPage(unsigned int);
 	req_type _getType(const std::string&);
 	std::string _listDirectory(const std::string&);
 	std::string _findResourcePath(const Request&, Location*);

@@ -1,3 +1,6 @@
+.IGNORE:
+.SILENT:
+
 NAME	=	webserv
 
 CPP		=	c++ -Wall -Wextra -Werror -std=c++98
@@ -21,7 +24,6 @@ SRC		=	main.cpp			\
 			src/Response.cpp	\
 			src/Cgi.cpp			\
 			src/Session.cpp		\
-			src/ISessionManager.cpp
 
 OBJ		=	$(SRC:.cpp=.o)
 DEBUG_OBJ = $(SRC:.cpp=.debug.o)
@@ -92,7 +94,7 @@ COUNTER = 0
 PERCENT = 0
 
 %.o: %.cpp
-	@$(CPP) -I $(INCLUDE) -c $< -o $@
+	@$(CPP) -I $(INCLUDE) -c $< -o $@ 2>> errors.log
 	@$(eval COUNTER=$(shell echo $$(($(COUNTER) + 1))))
 	@$(eval DONE=$(shell echo $$(($(COUNTER) * $(BAR_SIZE) / $(TOTAL_FILES)))))
 	@printf "$(GREEN)"
@@ -103,7 +105,7 @@ PERCENT = 0
 	@printf "$(RESET)"
 
 %.debug.o: %.cpp
-	@$(CPP) $(DEBUG_MODE) -g3 -I $(INCLUDE) -c $< -o $@
+	@$(CPP) $(DEBUG_MODE) -g3 -I $(INCLUDE) -c $< -o $@ 2>> errors.log
 	@$(eval COUNTER=$(shell echo $$(($(COUNTER) + 1))))
 	@$(eval DONE=$(shell echo $$(($(COUNTER) * $(BAR_SIZE) / $(TOTAL_FILES)))))
 	@printf "$(YELLOW)"
@@ -116,8 +118,11 @@ PERCENT = 0
 all: clear $(NAME)
 
 $(NAME): pre_compile $(OBJ)
-	@$(CPP) $(OBJ) -o $(NAME)
-	@echo "$(GREEN)$(BOLD)\n\n 🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮  Done!  🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯$(RESET)"
+	@$(CPP) $(OBJ) -o $(NAME) 2>> errors.log
+	@echo "$(GREEN)$(BOLD)\n\n 🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮  Done!  🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯\n$(RESET)"
+	@echo "$(RED)"
+	@cat errors.log
+	@echo "$(RESET)"
 
 pre_compile: clear
 	@$(call TITLE)
@@ -129,8 +134,11 @@ pre_compile: clear
 	@$(eval COUNTER=0)
 
 debug: pre_compile_special $(DEBUG_OBJ)
-	@$(CPP) $(DEBUG_MODE) -g3 $(DEBUG_OBJ) -o $(NAME)
-	@echo "$(YELLOW)$(BOLD)\n\n 🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮  Done!  🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯$(RESET)"
+	@$(CPP) $(DEBUG_MODE) -g3 $(DEBUG_OBJ) -o $(NAME)  2>> errors.log
+	@echo "$(YELLOW)$(BOLD)\n\n 🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮  Done!  🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯\n$(RESET)"
+	@echo "$(RED)"
+	@cat errors.log
+	@echo "$(RESET)"
 
 pre_compile_special: clear
 	@$(call TITLE_DEBUG)
@@ -199,4 +207,9 @@ re:
 	@make fclean
 	@make all
 
-.PHONY: all clean fclean re vg debug pre_compile pre_compile_special clear
+git:
+	@git add .
+	@git commit -m "Auto commit"
+	@git push
+
+.PHONY: all clean fclean re vg debug pre_compile pre_compile_special clear git

@@ -1,10 +1,13 @@
 #include "Logger.h"
 #include "Utils.h"
+#include <vector>
+
 
 namespace Logger
 {
 	std::fstream log_file;
 	log_level min_lvl = TEXT;
+	std::vector<std::string> errors;
 	
 	void log(const std::string& message, const log_level level)
 	{
@@ -42,6 +45,7 @@ namespace Logger
 			lvl = "WARNING";
 			break;
 		case ERROR:
+			errors.push_back(message);
 			bold_clr = BOLD_RED;
 			clr = RED;
 			lvl = "ERROR";
@@ -72,5 +76,28 @@ namespace Logger
 	void setMinLogLevel(log_level lvl)
 	{
 		min_lvl = lvl;
+	}
+
+	void logErrors() {
+		if (errors.size() == 0) return ;
+		std::string bold_clr = BOLD_RED, clr = RED, lvl = "ERROR";
+		std::stringstream consoleOutput, logFileOutput;
+		std::string timestr = Utils::getCurrentTime();
+
+		consoleOutput << DEF << "[" << timestr << "] " << BOLD_RED << "    [ ERROR SUMMARY ]    " << DEF << std::endl;
+		logFileOutput << "[" << timestr << "]    [ ERROR SUMMARY ]    " << std::endl;
+
+		for (size_t i = 0; i < errors.size(); ++i)
+		{
+			std::string msg = errors[i];
+			timestr = Utils::getCurrentTime();
+
+			consoleOutput << DEF << "[" << timestr << "] " << bold_clr << " [" << lvl << "]" << clr << " - " << msg << DEF << std::endl;
+			logFileOutput << "[" << timestr << "]  [" << lvl << "]" << " - " << msg << std::endl;
+		}
+
+		std::cout << consoleOutput.str();
+		if (log_file.is_open())
+			log_file.write(logFileOutput.str().c_str(), logFileOutput.str().size());
 	}
 }

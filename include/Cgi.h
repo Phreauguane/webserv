@@ -5,16 +5,16 @@
 #include "Response.h"
 #include "Location.h"
 #include "Session.h"
-#include "ISessionManager.h"
 
 #define MAX_POST_SIZE 10485760  // 10MB par exemple
 
 class Request;
+class Server;
 
 class CGI {
 public:
 	CGI();
-	CGI(ISessionManager& server);
+	CGI(Server*);
 	CGI(const CGI&);
 	void setup(char**);
 	bool executeCGI(Request&, const std::string&, Location*, Response&);
@@ -37,6 +37,6 @@ private:
 private:
 	char **_env;
 	int _stdout;
-	ISessionManager* _server;
+	Server *_server; 
 };
  

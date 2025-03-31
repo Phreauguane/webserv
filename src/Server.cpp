@@ -6,7 +6,7 @@ Server::Server()
 	//
 }
 
-Server::Server(const Server& copy) : ISessionManager(copy)
+Server::Server(const Server& copy)
 {
 	*this = copy;
 }
@@ -74,7 +74,7 @@ void Server::_parseSource(const std::string& source)
 Server::Server(const std::string& source, char **env)
 {
 	_env = env;
-	cgiHandler = new CGI(*this);
+	cgiHandler = new CGI(this);
 	cgiHandler->setup(_env);
 	_root_loc = new Location(_env);
 	_parseSource(source);
@@ -307,12 +307,12 @@ Response Server::executeRequest(Request& req)
 	// Vérifier d'abord si le fichier existe
 	req_type type = _getType(path);
 	if (type == T_NFD) {
-		return _errorPage(404);
+		return errorPage(404);
 	}
 	
 	// Vérification de la méthode
 	if (req.method != "GET" && req.method != "POST" && req.method != "DELETE") {
-		return _errorPage(405);
+		return errorPage(405);
 	}
 
 	if (req.method == "DELETE") {
@@ -339,19 +339,19 @@ Response Server::executeRequest(Request& req)
 		
 		// Vérification des permissions de lecture
 		if (access(path.c_str(), R_OK) != 0) {
-			return _errorPage(403);
+			return errorPage(403);
 		}
 		// Restaurer le chemin original avec les paramètres
 		else {
 			path = originalPath;
 			// Vérification du Content-Type pour POST
 			if (req.method == "POST" && req.attributes.find("Content-Type") == req.attributes.end()) {
-				return _errorPage(400);
+				return errorPage(400);
 			}
 
 			// Ajouter la vérification de la méthode avant d'exécuter le CGI
 			if (!Utils::searchFor(loc->_allowed_methods, req.method)) {
-				return _errorPage(405);
+				return errorPage(405);
 			}
 
 			// Tentative d'exécution du CGI
@@ -361,7 +361,7 @@ Response Server::executeRequest(Request& req)
 				}
 			} catch (const std::exception& e) {
 				Logger::log("CGI execution failed: " + std::string(e.what()), ERROR);
-				return _errorPage(500);
+				return errorPage(500);
 			}
 		}
 	}
@@ -380,7 +380,7 @@ Response Server::executeRequest(Request& req)
 		return _post(req);
 	
 	// Si on arrive ici, c'est qu'il y a un problème inattendu
-	return _errorPage(500);
+	return errorPage(500);
 }
 
 req_type Server::_getType(const std::string& path)
@@ -432,7 +432,7 @@ Response Server::_get(const Request& req)
 		// Obtenir la location correspondante
 		Location *loc = _getLocation(req.path);
 		if (!loc) {
-			return _errorPage(404);
+			return errorPage(404);
 		}
 
 		// Vérifier si une redirection est configurée
@@ -450,7 +450,7 @@ Response Server::_get(const Request& req)
 
 		// Vérification des permissions de méthode
 		if (!Utils::searchFor(loc->_allowed_methods, std::string("GET"))) {
-			return _errorPage(405);
+			return errorPage(405);
 		}
 
 		// Construction et vérification du chemin
@@ -459,12 +459,12 @@ Response Server::_get(const Request& req)
 
 		// Vérification des permissions de lecture
 		if (access(path.c_str(), R_OK) != 0 && type != T_NFD) {
-			return _errorPage(403);
+			return errorPage(403);
 		}
 
 		// Gestion des différents types de ressources
 		if (type == T_NFD) {
-			return _errorPage(404);
+			return errorPage(404);
 		}
 		else if (type == T_FILE) {
 			return _readFile(req, path);
@@ -472,7 +472,7 @@ Response Server::_get(const Request& req)
 		else if (type == T_DIR) {
 			// Si le chemin ne se termine pas par '/', redirection
 			if (req.path[req.path.size() - 1] != '/') {
-				return _errorPage(301);
+				return errorPage(301);
 			}
 
 			// Vérification de l'index
@@ -481,7 +481,7 @@ Response Server::_get(const Request& req)
 				if (_getType(idx_path) == T_FILE) {
 					// Vérification des permissions de lecture pour l'index
 					if (access(idx_path.c_str(), R_OK) != 0) {
-						return _errorPage(403);
+						return errorPage(403);
 					}
 					return _readFile(req, idx_path);
 				}
@@ -491,15 +491,15 @@ Response Server::_get(const Request& req)
 			if (loc->_auto_index) {
 				return _autoIndex(path);
 			}
-			return _errorPage(403);
+			return errorPage(403);
 		}
 
 		// Si on arrive ici, c'est qu'il y a un problème inattendu
-		return _errorPage(500);
+		return errorPage(500);
 
 	} catch(const std::exception& e) {
 		Logger::log("GET error: " + std::string(e.what()), ERROR);
-		return _errorPage(500);
+		return errorPage(500);
 	}
 }
 
@@ -525,22 +525,22 @@ Response Server::_post(const Request& req)
 		// Vérification de la location
 		Location *loc = _getLocation(req.path);
 		if (!loc) {
-			return _errorPage(404);
+			return errorPage(404);
 		}
 
 		// Vérification des permissions de méthode
 		if (!Utils::searchFor(loc->_allowed_methods, std::string("POST"))) {
-			return _errorPage(405);
+			return errorPage(405);
 		}
 
 		// Vérification de la taille du body
 		if (req.body.size() > getMaxBodySize()) {
-			return _errorPage(413);
+			return errorPage(413);
 		}
 
 		// Vérification du Content-Type
 		if (req.attributes.find("Content-Type") == req.attributes.end()) {
-			return _errorPage(400);
+			return errorPage(400);
 		}
 
 		// Construction du chemin complet
@@ -549,26 +549,26 @@ Response Server::_post(const Request& req)
 		// Vérification du dossier parent
 		std::string parent_dir = path.substr(0, path.find_last_of("/"));
 		if (!Utils::fileExists(parent_dir)) {
-			return _errorPage(409);
+			return errorPage(409);
 		}
 
 		// Vérification des permissions d'écriture
 		if (access(parent_dir.c_str(), W_OK) != 0) {
-			return _errorPage(403);
+			return errorPage(403);
 		}
 
 		// Traitement du fichier
 		if (Utils::fileExists(path)) {
 			std::ofstream file(path.c_str(), std::ios::binary);
 			if (!file.is_open()) {
-				return _errorPage(500);
+				return errorPage(500);
 			}
 			file.write(req.body.c_str(), req.body.size());
 			file.close();
 		} else {
 			std::ofstream file(path.c_str(), std::ios::binary);
 			if (!file.is_open()) {
-				return _errorPage(500);
+				return errorPage(500);
 			}
 			file.write(req.body.c_str(), req.body.size());
 			file.close();
@@ -584,7 +584,7 @@ Response Server::_post(const Request& req)
 
 	} catch (const std::exception& e) {
 		Logger::log("POST error: " + std::string(e.what()), ERROR);
-		return _errorPage(500);
+		return errorPage(500);
 	}
 	
 	return rep;
@@ -602,7 +602,7 @@ Response Server::_delete(Request& req)
 		Location *loc = _getLocation(req.path);
 		if (!loc) {
 			Logger::log("Location not found for path: " + req.path, ERROR);
-			return _errorPage(404);
+			return errorPage(404);
 		}
 		
 		// Log des méthodes autorisées
@@ -613,7 +613,7 @@ Response Server::_delete(Request& req)
 
 		if (!Utils::searchFor(loc->_allowed_methods, std::string("DELETE"))) {
 			Logger::log("DELETE method not allowed for this location", ERROR);
-			return _errorPage(405);
+			return errorPage(405);
 		}
 
 		std::string path = _findResourcePath(req, loc);
@@ -621,14 +621,14 @@ Response Server::_delete(Request& req)
 		
 		if (!Utils::fileExists(path)) {
 			Logger::log("File not found: " + path, ERROR);
-			return _errorPage(404);
+			return errorPage(404);
 		}
 
 		struct stat path_stat;
 		if (stat(path.c_str(), &path_stat) == 0) {
 			if (S_ISDIR(path_stat.st_mode)) {
 				Logger::log("Cannot delete directory: " + path, ERROR);
-				return _errorPage(403);
+				return errorPage(403);
 			}
 		}
 
@@ -636,14 +636,14 @@ Response Server::_delete(Request& req)
 		Logger::log("Checking write permissions for: " + path, DEBUG);
 		if (access(path.c_str(), W_OK) != 0) {
 			Logger::log("No write permission for file: " + path + " (errno: " + Utils::toString(errno) + ")", ERROR);
-			return _errorPage(403);
+			return errorPage(403);
 		}
 
 		// Log de la tentative de suppression
 		Logger::log("Attempting to delete file: " + path, DEBUG);
 		if (remove(path.c_str()) != 0) {
 			Logger::log("Failed to delete file: " + path + " (errno: " + Utils::toString(errno) + ")", ERROR);
-			return _errorPage(500);
+			return errorPage(500);
 		}
 
 		// Succès
@@ -656,7 +656,7 @@ Response Server::_delete(Request& req)
 		
 	} catch (const std::exception& e) {
 		Logger::log("Delete error: " + std::string(e.what()), ERROR);
-		return _errorPage(500);
+		return errorPage(500);
 	}
 	
 	return rep;
@@ -701,7 +701,7 @@ std::string Server::_listDirectory(const std::string &path)
 	return html.str();
 }
 
-Response Server::_errorPage(unsigned int code)
+Response Server::errorPage(unsigned int code)
 {
 	Response rep;
 

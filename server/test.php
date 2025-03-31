@@ -1,10 +1,16 @@
 <?php
-echo "MIAOUUUU\n";
+// Afficher un message de début
+echo "Début de l'attente de 30 secondes...\n";
 
-// Récupérer et afficher le paramètre 'name'
-if (isset($_GET['name'])) {
-    echo "Hello, " . htmlspecialchars($_GET['name']) . "!";
-} else {
-    echo "No name provided.";
-}
+// Enregistrer le temps de début
+$start_time = time();
+
+// Attendre 30 secondes
+sleep(30);
+
+// Calculer le temps écoulé réel
+$elapsed_time = time() - $start_time;
+
+// Afficher un message de fin
+echo "Fin de l'attente après $elapsed_time secondes.\n";
 ?>
