@@ -41,6 +41,7 @@ public:
 	virtual bool hasSession(const std::string&);
 	virtual Session* getSession(const std::string&);
 	static bool sendResponse(Response&, int);
+	bool validateBody(const std::string&);
 private:
 	Response _get(const Request&);
 	Response _post(const Request&);

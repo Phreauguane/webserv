@@ -41,22 +41,34 @@ Client& Client::operator=(const Client& copy)
 	return *this;
 }
 
-int Client::getFd()
-{
+int Client::getFd() {
 	return _fd;
 }
 
-bool Client::readRequest()
-{
-	char buffer[BUFFER_SIZE + 1];
-	std::memset(buffer, 0, BUFFER_SIZE + 1);
-	ssize_t bytes = recv(_fd, buffer, BUFFER_SIZE, 0);
-	
-	if (bytes <= 0) {
-		return false;
-	}
-	
-	buffer[bytes] = '\0';
+bool Client::readRequest() {
+    char buffer[BUFFER_SIZE + 1];
+    std::string requestData;
+    bool requestComplete = false;
+    
+    while (!requestComplete) {
+        std::memset(buffer, 0, BUFFER_SIZE + 1);
+        ssize_t bytes = recv(_fd, buffer, BUFFER_SIZE, 0);
+        
+        if (bytes < 0)
+            return false;
+        
+        if (bytes == 0) {
+            if (requestData.empty())
+                return false;
+            requestComplete = true;
+        } else {
+            buffer[bytes] = '\0';
+            requestData += buffer;
+            
+            if (requestData.find("\r\n\r\n") != std::string::npos)
+                requestComplete = true;
+        }
+    }
 	
 	try {
 		_server->pushRequest(new Request(std::string(buffer), this));

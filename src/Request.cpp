@@ -37,8 +37,7 @@ void Request::parseRequest()
 	std::vector<std::string> lines = Utils::splitString(headers, "\n");
 	for (size_t i = 0; i < lines.size(); i++)
 	{
-		if (i == 0)
-		{
+		if (i == 0) {
 			std::vector<std::string> strs = Utils::splitString(lines[i], " ");
 			if (strs.size() != 3)
 				throw std::runtime_error("Invalid Header : " + lines[i]);
@@ -46,8 +45,7 @@ void Request::parseRequest()
 			path = strs[1];
 			http_version = strs[2];
 		}
-		else
-		{
+		else {
 			std::vector<std::string> strs = Utils::splitString(lines[i], ": ");
 			if (strs.size() >= 2)  // Vérification de la taille
 			{
