@@ -43,12 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="password" id="password" name="password" required>
             </div>
             
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" name="remember"> Se souvenir de moi
-                </label>
-            </div>
-            
             <button type="submit" class="btn">Se connecter</button>
         </form>
     </div>

@@ -65,7 +65,6 @@ if (isset($_GET['download']) && !empty($_GET['download'])) {
                         echo '<span class="file-size">' . formatBytes($fileSize) . '</span>';
                         echo '</div>';
                         echo '<div class="file-actions">';
-                        echo '<a href="drive.php?download=' . urlencode($file) . '" class="btn btn-download">Télécharger</a>';
                         echo '<button onclick="deleteItem(\'' . htmlspecialchars($file) . '\')" class="btn btn-delete">Supprimer</button>';
                         echo '</div>';
                         echo '</li>';
@@ -119,15 +118,6 @@ if (isset($_GET['download']) && !empty($_GET['download'])) {
     cursor: pointer;
     font-size: 14px;
     transition: all 0.2s ease;
-}
-
-.btn-download {
-    background-color: #4CAF50;
-    color: white;
-}
-
-.btn-download:hover {
-    background-color: #45a049;
 }
 
 .btn-delete {
