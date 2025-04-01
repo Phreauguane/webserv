@@ -25,10 +25,10 @@ public:
 private:
 	void _restoreStdOut();
 	std::string _getExec(std::string);
-	Response _execPHP(const std::string&, Request&);
+	Response _execPHP(const std::string&, Location*, Request&);
 	std::string _getQuery(const Request&);
 	void _executeCommand(const std::string&, const std::string&, char**, char**, int*);
-	void _handlePHPSession(Request& req, Response& rep);
+	void _handlePHPSession(Request&, Response&);
 	Response _execPython(const std::string&, Request&);
 	Response _execC(const std::string&, Request&);
 	std::string _compileCProgram(const std::string&);

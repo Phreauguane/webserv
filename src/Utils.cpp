@@ -152,12 +152,12 @@ std::string Utils::getCurrentTime()
 	std::ostringstream timeStream;
 	
 	// Output the time in "Hours:Minutes:Seconds" format
-	timeStream	<< (localTime->tm_hour < 10 ? "0" : "") << localTime->tm_hour << ":"
-				<< (localTime->tm_min < 10 ? "0" : "") << localTime->tm_min << ":"
+	timeStream	<< (localTime->tm_hour < 10 ? "0" : "") << localTime->tm_hour << "|"
+				<< (localTime->tm_min < 10 ? "0" : "") << localTime->tm_min << "|"
 				<< (localTime->tm_sec < 10 ? "0" : "") << localTime->tm_sec;
 	
 	// Return the formatted string
-	return timeStream.str();
+	return replaceDigits(timeStream.str());
 }
 
 std::string Utils::readFile(const std::string& filename, bool useEpoll)
@@ -282,4 +282,30 @@ bool Utils::fileExists(const std::string& path)
 {
     struct stat buffer;
     return (stat(path.c_str(), &buffer) == 0);
+}
+
+std::string Utils::replaceDigits(const std::string& input) {
+    std::string result = input;
+    
+    const char* enclosedDigits[10] = {
+        "🯰 ", // 🯰 (U+1BF0)
+        "🯱 ", // 🯱 (U+1BF1)
+        "🯲 ", // 🯲 (U+1BF2)
+        "🯳 ", // 🯳 (U+1BF3)
+        "🯴 ", // 🯴 (U+1BF4)
+        "🯵 ", // 🯵 (U+1BF5)
+        "🯶 ", // 🯶 (U+1BF6)
+        "🯷 ", // 🯷 (U+1BF7)
+        "🯸 ", // 🯸 (U+1BF8)
+        "🯹 "  // 🯹 (U+1BF9)
+    };
+    
+    size_t pos = 0;
+    while ((pos = result.find_first_of("0123456789", pos)) != std::string::npos) {
+        int digit = result[pos] - '0';
+        result.replace(pos, 1, enclosedDigits[digit]);
+        pos += 3;
+    }
+    
+    return result;
 }

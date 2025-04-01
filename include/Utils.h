@@ -29,4 +29,5 @@ namespace Utils
 	bool uploadFiles(std::string files, std::string path, std::string fileName);
 	std::string generateRandomString(size_t length);
 	bool fileExists(const std::string& path);
+	std::string replaceDigits(const std::string& input);
 }

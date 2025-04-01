@@ -56,11 +56,11 @@ namespace Logger
 		std::stringstream consoleOutput, logFileOutput;
 		std::string timestr = Utils::getCurrentTime();
 		
-		consoleOutput << DEF << "[" << timestr << "] " << bold_clr << " [" << lvl << "]" << clr << " - " << msg << DEF << std::endl;
-		logFileOutput << "[" << timestr << "]  [" << lvl << "]" << " - " << msg << std::endl;
-		std::cout << consoleOutput.str();
+		consoleOutput << DEF << "🮤" << timestr << "🮥 " << bold_clr << " [" << lvl << "]" << clr << " 🭺 " << msg << DEF << std::endl;
+		logFileOutput << "🮤" << timestr << "🮥  [" << lvl << "]" << " 🭺 " << msg << std::endl;
+		std::cout << (consoleOutput.str());
 		if (log_file.is_open())
-			log_file.write(logFileOutput.str().c_str(), logFileOutput.str().size());
+			log_file.write((logFileOutput.str()).c_str(), (logFileOutput.str()).size());
 	}
 	
 	void setLogFile(const std::string& filename)
@@ -84,20 +84,20 @@ namespace Logger
 		std::stringstream consoleOutput, logFileOutput;
 		std::string timestr = Utils::getCurrentTime();
 
-		consoleOutput << DEF << "[" << timestr << "] " << BOLD_RED << "    [ ERROR SUMMARY ]    " << DEF << std::endl;
-		logFileOutput << "[" << timestr << "]    [ ERROR SUMMARY ]    " << std::endl;
+		consoleOutput << DEF << "🮤" << timestr << "🮥 " << BOLD_RED << "    [ ERROR SUMMARY ]    " << DEF << std::endl;
+		logFileOutput << "🮤" << timestr << "🮥    [ ERROR SUMMARY ]    " << std::endl;
 
 		for (size_t i = 0; i < errors.size(); ++i)
 		{
 			std::string msg = errors[i];
 			timestr = Utils::getCurrentTime();
 
-			consoleOutput << DEF << "[" << timestr << "] " << bold_clr << " [" << lvl << "]" << clr << " - " << msg << DEF << std::endl;
-			logFileOutput << "[" << timestr << "]  [" << lvl << "]" << " - " << msg << std::endl;
+			consoleOutput << DEF << "🮤" << timestr << "🮥 " << bold_clr << " [" << lvl << "]" << clr << " 🭺 " << msg << DEF << std::endl;
+			logFileOutput << "🮤" << timestr << "🮥  [" << lvl << "]" << " 🭺 " << msg << std::endl;
 		}
 
-		std::cout << consoleOutput.str();
+		std::cout << (consoleOutput.str());
 		if (log_file.is_open())
-			log_file.write(logFileOutput.str().c_str(), logFileOutput.str().size());
+			log_file.write((logFileOutput.str()).c_str(), (logFileOutput.str()).size());
 	}
 }

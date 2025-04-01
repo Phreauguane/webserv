@@ -7,7 +7,7 @@ if (!isLoggedIn()) {
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $dossier_destination = "uploads/";
+    $dossier_destination = "nigga/";
     $max_size = 30720; // 30 KB en octets
     
     if (!isset($error)) {

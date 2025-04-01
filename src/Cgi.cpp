@@ -381,7 +381,7 @@ std::string CGI::_getExec(std::string cmd)
 	return cmd;
 }
 
-Response CGI::_execPHP(const std::string& path, Request& req)
+Response CGI::_execPHP(const std::string& path, Location *loc, Request& req)
 {
 	std::string php_cgi = _getExec("php-cgi");
 	char *args[] = {(char*)php_cgi.c_str(), (char*)path.c_str(), NULL};
@@ -426,7 +426,7 @@ Response CGI::_execPHP(const std::string& path, Request& req)
 	std::string content_length = "CONTENT_LENGTH=" + Utils::toString(query.length());
 	std::string script_filename = "SCRIPT_FILENAME=" + clean_path;
 	std::string session_env = "HTTP_COOKIE=PHPSESSID=" + session_id;
-	std::string upload_tmp_dir = "UPLOAD_TMP_DIR=/tmp";
+	std::string upload_tmp_dir = "UPLOAD_TMP_DIR=" + (loc->_upload == "" ? "/" : loc->_upload);
 	std::string gateway_interface = "GATEWAY_INTERFACE=CGI/1.1";
 	std::string server_protocol = "SERVER_PROTOCOL=HTTP/1.1";
 	std::string document_root = "DOCUMENT_ROOT=" + clean_path.substr(0, clean_path.find_last_of("/"));
@@ -707,7 +707,7 @@ bool CGI::executeCGI(Request &req, const std::string &path, Location *loc, Respo
 	if (ext == ".php")
 	{
 		Logger::log("Running php...", DEBUG);
-		rep = _execPHP(path, req);
+		rep = _execPHP(path, loc, req);
 	}
 	else if (ext == ".py")
 	{

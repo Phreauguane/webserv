@@ -100,6 +100,11 @@ void Location::parseLine(const std::vector<std::string>& strs)
 			_cgi_exts.push_back(strs[i]);
 		}
 	}
+	else if (strs[0] == "upload_dir")
+	{
+		Utils::verify_args(strs, 2, 2);
+		_upload = strs[1];
+	}
 	else if (strs[0] == "autoindex")
 	{
 		Utils::verify_args(strs, 2, 2);

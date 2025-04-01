@@ -284,7 +284,11 @@ Location *Server::_getLocation(const std::string& path)
 Response Server::executeRequest(Request& req)
 {
 	Response rep;
-	
+
+	if (req.body.size() > 0 && req.attributes["Content-Length"].size() == 0) {
+		return errorPage(411);
+	}
+
 	_handleSession(req, rep);
 	
 	Location *loc = _getLocation(req.path);
@@ -416,7 +420,7 @@ Response Server::_get(const Request& req)
 		if (!loc->_return.empty()) {
 			std::vector<std::string> return_parts = Utils::splitString(loc->_return, " ");
 			if (return_parts.size() >= 3 && return_parts[0] == "return") {
-				rep.status = std::atoi(return_parts[1].c_str());
+				rep.status = std::atoi(return_parts[1].c_str()); // redirect
 				rep.attributes["Location"] = return_parts[2];
 				rep.phrase = "Moved Permanently";
 				rep.ready = true;
@@ -431,14 +435,15 @@ Response Server::_get(const Request& req)
 		std::string path = _findResourcePath(req, loc);
 		req_type type = _getType(path);
 
+		if (type == T_NFD) {
+			return errorPage(404);
+		}
+
 		if (access(path.c_str(), R_OK) != 0 && type != T_NFD) {
 			return errorPage(403);
 		}
 
-		if (type == T_NFD) {
-			return errorPage(404);
-		}
-		else if (type == T_FILE) {
+		if (type == T_FILE) {
 			return _readFile(req, path);
 		}
 		else if (type == T_DIR) {
@@ -654,32 +659,503 @@ std::string Server::_listDirectory(const std::string &path)
 
 Response Server::errorPage(unsigned int code)
 {
-	Response rep;
+    Response rep;
+    std::string errorTitle;
+    std::string errorDescription;
+    std::string errorColor;
+    
+    // Set error details based on status code
+    switch(code)
+    {
+        // 1xx Informational
+        case 100:
+            errorTitle = "Continue";
+            errorDescription = "The server has received the request headers and the client should proceed to send the request body.";
+            errorColor = "#3498DB";
+            break;
+        case 101:
+            errorTitle = "Switching Protocols";
+            errorDescription = "The requester has asked the server to switch protocols and the server has agreed to do so.";
+            errorColor = "#3498DB";
+            break;
+        case 102:
+            errorTitle = "Processing";
+            errorDescription = "The server has received and is processing the request, but no response is available yet.";
+            errorColor = "#3498DB";
+            break;
+        case 103:
+            errorTitle = "Early Hints";
+            errorDescription = "Used to return some response headers before final HTTP message.";
+            errorColor = "#3498DB";
+            break;
 
-	Logger::log(_error_pages[code], INFO);
-	req_type type = _getType(_root_loc->_root + _error_pages[code]);
-	if (type == T_FILE)
-		rep.body = Utils::readFile(_root_loc->_root + _error_pages[code], true);
-	else
-	{
-		std::stringstream ss;
-		ss << "<!DOCTYPE html>\n";
-		ss << "<html><head>\n";
-		ss << "<title>Error " << code << "</title>\n";
-		ss << "<style>body{font-family:Arial,sans-serif;text-align:center;padding:40px;}</style>\n";
-		ss << "</head><body>\n";
-		ss << "<h1>Error " << code << "</h1>\n";
-		ss << "</body></html>";
-		rep.body = ss.str();
-	}
-	rep.attributes["Content-Type"] = "text/html";
-	rep.http = "HTTP/1.1";
-	rep.status = code;
-	rep.phrase = "ERROR";
-	rep.attributes["Connection"] = "close";
-	rep.ready = true;
+        // 2xx Success
+        case 200:
+            errorTitle = "OK";
+            errorDescription = "The request has succeeded.";
+            errorColor = "#2ECC71";
+            break;
+        case 201:
+            errorTitle = "Created";
+            errorDescription = "The request has been fulfilled and a new resource has been created.";
+            errorColor = "#2ECC71";
+            break;
+        case 202:
+            errorTitle = "Accepted";
+            errorDescription = "The request has been accepted for processing, but the processing has not been completed.";
+            errorColor = "#2ECC71";
+            break;
+        case 203:
+            errorTitle = "Non-Authoritative Information";
+            errorDescription = "The server is a transforming proxy that received a 200 OK from its origin, but is returning a modified version of the origin's response.";
+            errorColor = "#2ECC71";
+            break;
+        case 204:
+            errorTitle = "No Content";
+            errorDescription = "The server successfully processed the request, but is not returning any content.";
+            errorColor = "#2ECC71";
+            break;
+        case 205:
+            errorTitle = "Reset Content";
+            errorDescription = "The server successfully processed the request, but is not returning any content. The requester should reset the document view.";
+            errorColor = "#2ECC71";
+            break;
+        case 206:
+            errorTitle = "Partial Content";
+            errorDescription = "The server is delivering only part of the resource due to a range header sent by the client.";
+            errorColor = "#2ECC71";
+            break;
+        case 207:
+            errorTitle = "Multi-Status";
+            errorDescription = "The message body that follows is an XML message and can contain a number of separate response codes.";
+            errorColor = "#2ECC71";
+            break;
+        case 208:
+            errorTitle = "Already Reported";
+            errorDescription = "The members of a DAV binding have already been enumerated in a previous reply to this request, and are not being included again.";
+            errorColor = "#2ECC71";
+            break;
+        case 226:
+            errorTitle = "IM Used";
+            errorDescription = "The server has fulfilled a request for the resource, and the response is a representation of the result of one or more instance-manipulations applied to the current instance.";
+            errorColor = "#2ECC71";
+            break;
 
-	return rep;
+        // 3xx Redirection
+        case 300:
+            errorTitle = "Multiple Choices";
+            errorDescription = "The requested resource has multiple representations available.";
+            errorColor = "#F39C12";
+            break;
+        case 301:
+            errorTitle = "Moved Permanently";
+            errorDescription = "The requested resource has been permanently moved to a new URL.";
+            errorColor = "#F39C12";
+            break;
+        case 302:
+            errorTitle = "Found";
+            errorDescription = "The requested resource temporarily resides under a different URL.";
+            errorColor = "#F39C12";
+            break;
+        case 303:
+            errorTitle = "See Other";
+            errorDescription = "The response to the request can be found under a different URL.";
+            errorColor = "#F39C12";
+            break;
+        case 304:
+            errorTitle = "Not Modified";
+            errorDescription = "The resource has not been modified since the last request.";
+            errorColor = "#F39C12";
+            break;
+        case 305:
+            errorTitle = "Use Proxy";
+            errorDescription = "The requested resource must be accessed through the proxy given by the Location field.";
+            errorColor = "#F39C12";
+            break;
+        case 307:
+            errorTitle = "Temporary Redirect";
+            errorDescription = "The requested resource temporarily resides under a different URL.";
+            errorColor = "#F39C12";
+            break;
+        case 308:
+            errorTitle = "Permanent Redirect";
+            errorDescription = "The requested resource has been permanently moved to another URL.";
+            errorColor = "#F39C12";
+            break;
+
+        // 4xx Client Error
+        case 400:
+            errorTitle = "Bad Request";
+            errorDescription = "The server cannot process the request due to a client error.";
+            errorColor = "#E74C3C";
+            break;
+        case 401:
+            errorTitle = "Unauthorized";
+            errorDescription = "Authentication is required and has failed or has not been provided.";
+            errorColor = "#E74C3C";
+            break;
+        case 402:
+            errorTitle = "Payment Required";
+            errorDescription = "Reserved for future use. Payment is required to access this resource.";
+            errorColor = "#E74C3C";
+            break;
+        case 403:
+            errorTitle = "Forbidden";
+            errorDescription = "You don't have permission to access this resource.";
+            errorColor = "#E74C3C";
+            break;
+        case 404:
+            errorTitle = "Not Found";
+            errorDescription = "The requested resource could not be found on this server.";
+            errorColor = "#E74C3C";
+            break;
+        case 405:
+            errorTitle = "Method Not Allowed";
+            errorDescription = "The request method is not supported for the requested resource.";
+            errorColor = "#E74C3C";
+            break;
+        case 406:
+            errorTitle = "Not Acceptable";
+            errorDescription = "The requested resource is capable of generating only content not acceptable according to the Accept headers sent in the request.";
+            errorColor = "#E74C3C";
+            break;
+        case 407:
+            errorTitle = "Proxy Authentication Required";
+            errorDescription = "Authentication with the proxy is required before proceeding.";
+            errorColor = "#E74C3C";
+            break;
+        case 408:
+            errorTitle = "Request Timeout";
+            errorDescription = "The server timed out waiting for the request.";
+            errorColor = "#E74C3C";
+            break;
+        case 409:
+            errorTitle = "Conflict";
+            errorDescription = "The request could not be completed due to a conflict with the current state of the resource.";
+            errorColor = "#E74C3C";
+            break;
+        case 410:
+            errorTitle = "Gone";
+            errorDescription = "The requested resource is no longer available and will not be available again.";
+            errorColor = "#E74C3C";
+            break;
+        case 411:
+            errorTitle = "Length Required";
+            errorDescription = "The request did not specify the length of its content, which is required by the requested resource.";
+            errorColor = "#E74C3C";
+            break;
+        case 412:
+            errorTitle = "Precondition Failed";
+            errorDescription = "The server does not meet one of the preconditions that the requester put on the request.";
+            errorColor = "#E74C3C";
+            break;
+        case 413:
+            errorTitle = "Payload Too Large";
+            errorDescription = "The request is larger than the server is willing or able to process.";
+            errorColor = "#E74C3C";
+            break;
+        case 414:
+            errorTitle = "URI Too Long";
+            errorDescription = "The URI provided was too long for the server to process.";
+            errorColor = "#E74C3C";
+            break;
+        case 415:
+            errorTitle = "Unsupported Media Type";
+            errorDescription = "The media format of the requested data is not supported by the server.";
+            errorColor = "#E74C3C";
+            break;
+        case 416:
+            errorTitle = "Range Not Satisfiable";
+            errorDescription = "The client has asked for a portion of the file, but the server cannot supply that portion.";
+            errorColor = "#E74C3C";
+            break;
+        case 417:
+            errorTitle = "Expectation Failed";
+            errorDescription = "The server cannot meet the requirements of the Expect request-header field.";
+            errorColor = "#E74C3C";
+            break;
+        case 418:
+            errorTitle = "I'm a teapot";
+            errorDescription = "The server refuses to brew coffee because it is a teapot.";
+            errorColor = "#E74C3C";
+            break;
+        case 421:
+            errorTitle = "Misdirected Request";
+            errorDescription = "The request was directed at a server that is not able to produce a response.";
+            errorColor = "#E74C3C";
+            break;
+        case 422:
+            errorTitle = "Unprocessable Entity";
+            errorDescription = "The request was well-formed but was unable to be followed due to semantic errors.";
+            errorColor = "#E74C3C";
+            break;
+        case 423:
+            errorTitle = "Locked";
+            errorDescription = "The resource that is being accessed is locked.";
+            errorColor = "#E74C3C";
+            break;
+        case 424:
+            errorTitle = "Failed Dependency";
+            errorDescription = "The request failed due to failure of a previous request.";
+            errorColor = "#E74C3C";
+            break;
+        case 425:
+            errorTitle = "Too Early";
+            errorDescription = "The server is unwilling to risk processing a request that might be replayed.";
+            errorColor = "#E74C3C";
+            break;
+        case 426:
+            errorTitle = "Upgrade Required";
+            errorDescription = "The client should switch to a different protocol.";
+            errorColor = "#E74C3C";
+            break;
+        case 428:
+            errorTitle = "Precondition Required";
+            errorDescription = "The origin server requires the request to be conditional.";
+            errorColor = "#E74C3C";
+            break;
+        case 429:
+            errorTitle = "Too Many Requests";
+            errorDescription = "The user has sent too many requests in a given amount of time.";
+            errorColor = "#E74C3C";
+            break;
+        case 431:
+            errorTitle = "Request Header Fields Too Large";
+            errorDescription = "The server is unwilling to process the request because its header fields are too large.";
+            errorColor = "#E74C3C";
+            break;
+        case 451:
+            errorTitle = "Unavailable For Legal Reasons";
+            errorDescription = "The requested resource is unavailable due to legal reasons.";
+            errorColor = "#E74C3C";
+            break;
+
+        // 5xx Server Error
+        case 500:
+            errorTitle = "Internal Server Error";
+            errorDescription = "The server encountered an unexpected condition that prevented it from fulfilling the request.";
+            errorColor = "#9B59B6";
+            break;
+        case 501:
+            errorTitle = "Not Implemented";
+            errorDescription = "The server does not support the functionality required to fulfill the request.";
+            errorColor = "#9B59B6";
+            break;
+        case 502:
+            errorTitle = "Bad Gateway";
+            errorDescription = "The server received an invalid response from the upstream server.";
+            errorColor = "#9B59B6";
+            break;
+        case 503:
+            errorTitle = "Service Unavailable";
+            errorDescription = "The server is currently unavailable (overloaded or down for maintenance).";
+            errorColor = "#9B59B6";
+            break;
+        case 504:
+            errorTitle = "Gateway Timeout";
+            errorDescription = "The server was acting as a gateway and did not receive a timely response.";
+            errorColor = "#9B59B6";
+            break;
+        case 505:
+            errorTitle = "HTTP Version Not Supported";
+            errorDescription = "The server does not support the HTTP protocol version used in the request.";
+            errorColor = "#9B59B6";
+            break;
+        case 506:
+            errorTitle = "Variant Also Negotiates";
+            errorDescription = "Transparent content negotiation for the request results in a circular reference.";
+            errorColor = "#9B59B6";
+            break;
+        case 507:
+            errorTitle = "Insufficient Storage";
+            errorDescription = "The server is unable to store the representation needed to complete the request.";
+            errorColor = "#9B59B6";
+            break;
+        case 508:
+            errorTitle = "Loop Detected";
+            errorDescription = "The server detected an infinite loop while processing the request.";
+            errorColor = "#9B59B6";
+            break;
+        case 510:
+            errorTitle = "Not Extended";
+            errorDescription = "Further extensions to the request are required for the server to fulfill it.";
+            errorColor = "#9B59B6";
+            break;
+        case 511:
+            errorTitle = "Network Authentication Required";
+            errorDescription = "The client needs to authenticate to gain network access.";
+            errorColor = "#9B59B6";
+            break;
+        
+        // Unofficial or Non-Standard Codes (520+)
+        case 520:
+            errorTitle = "Web Server Returned an Unknown Error";
+            errorDescription = "The origin server returned an unexpected response.";
+            errorColor = "#95A5A6";
+            break;
+        case 521:
+            errorTitle = "Web Server Is Down";
+            errorDescription = "The origin server refused connections.";
+            errorColor = "#95A5A6";
+            break;
+        case 522:
+            errorTitle = "Connection Timed Out";
+            errorDescription = "The connection to the origin server timed out.";
+            errorColor = "#95A5A6";
+            break;
+        case 523:
+            errorTitle = "Origin Is Unreachable";
+            errorDescription = "The origin server is unreachable.";
+            errorColor = "#95A5A6";
+            break;
+        case 524:
+            errorTitle = "A Timeout Occurred";
+            errorDescription = "A connection to the origin server was made, but the request timed out.";
+            errorColor = "#95A5A6";
+            break;
+        case 525:
+            errorTitle = "SSL Handshake Failed";
+            errorDescription = "The SSL/TLS handshake failed.";
+            errorColor = "#95A5A6";
+            break;
+        case 526:
+            errorTitle = "Invalid SSL Certificate";
+            errorDescription = "The origin server presented an invalid SSL certificate.";
+            errorColor = "#95A5A6";
+            break;
+        case 527:
+            errorTitle = "Railgun Error";
+            errorDescription = "The request timed out or failed after the WAN connection was established.";
+            errorColor = "#95A5A6";
+            break;
+        case 530:
+            errorTitle = "Site is frozen";
+            errorDescription = "This site has been frozen due to inactivity.";
+            errorColor = "#95A5A6";
+            break;
+        
+        default:
+            if (code >= 600) {
+                errorTitle = "Unknown Error";
+                errorDescription = "An unknown error occurred while processing your request.";
+                errorColor = "#95A5A6";
+            } else if (code >= 500) {
+                errorTitle = "Server Error";
+                errorDescription = "The server encountered an error while processing your request.";
+                errorColor = "#9B59B6";
+            } else if (code >= 400) {
+                errorTitle = "Client Error";
+                errorDescription = "There was an error with your request.";
+                errorColor = "#E74C3C";
+            } else {
+                errorTitle = "Unknown Status";
+                errorDescription = "An unknown status code was returned.";
+                errorColor = "#95A5A6";
+            }
+            break;
+    }
+
+    Logger::log(_error_pages[code], INFO);
+    req_type type = _getType(_root_loc->_root + _error_pages[code]);
+    if (type == T_FILE)
+        rep.body = Utils::readFile(_root_loc->_root + _error_pages[code], true);
+    else
+    {
+        std::stringstream ss;
+        ss << "<!DOCTYPE html>\n";
+        ss << "<html lang=\"en\">\n";
+        ss << "<head>\n";
+        ss << "    <meta charset=\"UTF-8\">\n";
+        ss << "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
+        ss << "    <title>Error " << code << " - " << errorTitle << "</title>\n";
+        ss << "    <style>\n";
+        ss << "        * {\n";
+        ss << "            margin: 0;\n";
+        ss << "            padding: 0;\n";
+        ss << "            box-sizing: border-box;\n";
+        ss << "        }\n";
+        ss << "        body {\n";
+        ss << "            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;\n";
+        ss << "            background-color: #f8f9fa;\n";
+        ss << "            color: #333;\n";
+        ss << "            display: flex;\n";
+        ss << "            flex-direction: column;\n";
+        ss << "            align-items: center;\n";
+        ss << "            justify-content: center;\n";
+        ss << "            min-height: 100vh;\n";
+        ss << "            padding: 20px;\n";
+        ss << "        }\n";
+        ss << "        .error-container {\n";
+        ss << "            background-color: white;\n";
+        ss << "            border-radius: 12px;\n";
+        ss << "            box-shadow: 0 10px 25px rgba(0,0,0,0.05);\n";
+        ss << "            width: 100%;\n";
+        ss << "            max-width: 600px;\n";
+        ss << "            padding: 40px;\n";
+        ss << "            text-align: center;\n";
+        ss << "        }\n";
+        ss << "        .error-code {\n";
+        ss << "            font-size: 72px;\n";
+        ss << "            font-weight: 700;\n";
+        ss << "            color: " << errorColor << ";\n";
+        ss << "            line-height: 1;\n";
+        ss << "            margin-bottom: 10px;\n";
+        ss << "        }\n";
+        ss << "        .error-title {\n";
+        ss << "            font-size: 24px;\n";
+        ss << "            font-weight: 600;\n";
+        ss << "            margin-bottom: 20px;\n";
+        ss << "        }\n";
+        ss << "        .error-description {\n";
+        ss << "            color: #666;\n";
+        ss << "            margin-bottom: 30px;\n";
+        ss << "            line-height: 1.6;\n";
+        ss << "        }\n";
+        ss << "        .back-button {\n";
+        ss << "            display: inline-block;\n";
+        ss << "            background-color: " << errorColor << ";\n";
+        ss << "            color: white;\n";
+        ss << "            padding: 12px 24px;\n";
+        ss << "            border-radius: 6px;\n";
+        ss << "            text-decoration: none;\n";
+        ss << "            font-weight: 500;\n";
+        ss << "            transition: background-color 0.3s;\n";
+        ss << "        }\n";
+        ss << "        .back-button:hover {\n";
+        ss << "            background-color: " << errorColor << "dd;\n";
+        ss << "        }\n";
+        ss << "        @media (max-width: 480px) {\n";
+        ss << "            .error-code {\n";
+        ss << "                font-size: 60px;\n";
+        ss << "            }\n";
+        ss << "            .error-title {\n";
+        ss << "                font-size: 20px;\n";
+        ss << "            }\n";
+        ss << "            .error-container {\n";
+        ss << "                padding: 30px 20px;\n";
+        ss << "            }\n";
+        ss << "        }\n";
+        ss << "    </style>\n";
+        ss << "</head>\n";
+        ss << "<body>\n";
+        ss << "    <div class=\"error-container\">\n";
+        ss << "        <div class=\"error-code\">" << code << "</div>\n";
+        ss << "        <h1 class=\"error-title\">" << errorTitle << "</h1>\n";
+        ss << "        <p class=\"error-description\">" << errorDescription << "</p>\n";
+        ss << "        <a href=\"/\" class=\"back-button\">Go Home</a>\n";
+        ss << "    </div>\n";
+        ss << "</body>\n";
+        ss << "</html>";
+        rep.body = ss.str();
+    }
+    rep.attributes["Content-Type"] = "text/html";
+    rep.http = "HTTP/1.1";
+    rep.status = code;
+    rep.phrase = errorTitle;
+    rep.attributes["Connection"] = "close";
+    rep.ready = true;
+
+    return rep;
 }
 
 Response Server::_autoIndex(const std::string& path)

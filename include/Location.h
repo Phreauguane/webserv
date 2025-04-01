@@ -21,7 +21,7 @@ public:
 	~Location();
 public:
 	char **_env;
-	std::string _name, _root, _alias, _index, _return;
+	std::string _name, _root, _alias, _index, _return, _upload;
 	bool _auto_index;
 	std::vector<std::string> _allowed_methods;
 	std::vector<std::string> _cgi_exts;

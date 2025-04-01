@@ -44,6 +44,8 @@ std::string Response::build()
 	if (!ready)
 		return "Not ready :)";
 
+	// Logger::log(build_header() + "\r\n" + body, TEXT);
+
 	return build_header() + "\r\n" + body;
 }
 
