@@ -426,7 +426,7 @@ Response CGI::_execPHP(const std::string& path, Location *loc, Request& req)
 	std::string content_length = "CONTENT_LENGTH=" + Utils::toString(query.length());
 	std::string script_filename = "SCRIPT_FILENAME=" + clean_path;
 	std::string session_env = "HTTP_COOKIE=PHPSESSID=" + session_id;
-	std::string upload_tmp_dir = "UPLOAD_TMP_DIR=" + (loc->_upload == "" ? "/" : loc->_upload);
+	std::string upload_tmp_dir = "UPLOAD_DIR=" + (loc->_upload == "" ? "/uploads/" : loc->_upload);
 	std::string gateway_interface = "GATEWAY_INTERFACE=CGI/1.1";
 	std::string server_protocol = "SERVER_PROTOCOL=HTTP/1.1";
 	std::string document_root = "DOCUMENT_ROOT=" + clean_path.substr(0, clean_path.find_last_of("/"));
