@@ -15,9 +15,8 @@ Client::Client(const Client& copy)
 Client::Client(Server *server) : _server(server), _fd(-1), _size(0)
 {
 	_fd = accept(_server->getSockFd(), NULL, NULL);
-	if (_fd < 0) {
-		throw std::runtime_error("");  // Exception vide pour signaler "pas plus de connexions"
-	}
+	if (_fd < 0)
+		throw std::runtime_error("connection failed");
 	_id = "[" + Utils::toString(_fd) + "]";
 	_size = _server->getMaxBodySize();
 	Logger::log(_id + " Client connected to " + _server->getIp(), SUCCESS);

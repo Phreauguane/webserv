@@ -32,8 +32,8 @@ void Config::load(const std::string& filename)
 {
 	Logger::log("Loading config file : " + filename, INFO);
 
-	_source = Utils::readFile(filename); // Read full config file source
-	_source = Utils::removeComments(_source); // Remove comments from source
+	_source = Utils::readFile(filename);
+	_source = Utils::removeComments(_source);
 	
 	_createServers();
 	
@@ -60,39 +60,40 @@ void Config::run(bool *shouldClose)
         if (*shouldClose)
             break;
 
-        if (nfds < 0)
-            throw std::runtime_error("epoll_wait error");
+        if (nfds < 0) {
+			Logger::log("EPOLL failed", ERROR);
+			continue;
+		}
 
         Logger::log("epoll_wait returned: " + Utils::toString(nfds) + " events", INFO);
-        _checkForConnections(nfds);
-        _handleRequests(nfds);
+		try {
+			_checkForConnections(nfds);
+		} catch (const std::runtime_error &e) {
+			Logger::log("Connection error: " + std::string(e.what()), ERROR);
+		}
+		try {
+			_handleRequests(nfds);
+		} catch (const std::exception &e) {
+			Logger::log("Request error: " + std::string(e.what()), ERROR);
+		}
     }
 }
 
 void Config::_checkForConnections(size_t nfds)
 {
-    for (size_t i = 0; i < nfds; i++)
-    {
-        for (size_t j = 0; j < _servers.size(); j++)
-        {
-            if (_epollevents[i].data.fd == _servers[j]->getSockFd())
-            {
-                // Accepter toutes les connexions en attente
-                while (true)
-                {
+    for (size_t i = 0; i < nfds; i++) {
+        for (size_t j = 0; j < _servers.size(); j++) {
+            if (_epollevents[i].data.fd == _servers[j]->getSockFd()) {
+                while (true) {
                     Client *cli = NULL;
                     try {
                         cli = new Client(_servers[j]);
                         this->_addFd(cli->getFd(), EPOLLIN | EPOLLET);
                         _clients.push_back(cli);
                         Logger::log("Client FD added to epoll: " + Utils::toString(cli->getFd()), INFO);
-                    }
-                    catch (const std::runtime_error& e) {
-                        // Si cli est NULL, cela signifie que l'accept a échoué
-                        if (cli == NULL) {
+                    } catch (const std::runtime_error &e) {
+                        if (cli == NULL)
                             break;
-                        }
-                        // Si c'est une autre erreur, on nettoie et on la propage
                         delete cli;
                         throw;
                     }
@@ -104,12 +105,10 @@ void Config::_checkForConnections(size_t nfds)
 
 void Config::_handleRequests(size_t nfds)
 {
-    for (size_t i = 0; i < nfds; i++)
-    {
+    for (size_t i = 0; i < nfds; i++) {
         int fd = _epollevents[i].data.fd;
         uint32_t events = _epollevents[i].events;
 
-        // Log received events
         std::ostringstream oss;
         oss << "Event received on FD: " << fd << " - ";
         if (events & EPOLLIN) oss << "EPOLLIN ";
@@ -127,8 +126,6 @@ void Config::_handleRequests(size_t nfds)
                 {
                     Logger::log("Reading request...", INFO);
                     if (_clients[j]->readRequest()) {
-                        // Exécuter la requête immédiatement après l'avoir lue
-                        // _runRequests();
 						_clients[j]->runRequests();
                         
                         Logger::log("Request read successfully, modifying FD for EPOLLOUT", INFO);
@@ -164,19 +161,23 @@ void Config::_handleRequests(size_t nfds)
 
 void Config::_setupServers()
 {
-	try
+	for (size_t i = 0; i < _servers.size();)
 	{
-		for (size_t i = 0; i < _servers.size(); ++i)
-		{
-			if (_servers[i])
+		if (_servers[i]) {
+			try {
 				_servers[i]->setup();
+			} catch (const std::exception &e) {
+				Logger::log("Server setup: " + std::string(e.what()), ERROR);
+				Logger::log("Failed to initialize server at " + _servers[i]->getIp(), ERROR);
+				_servers.erase(_servers.begin() + i);
+				continue;
+			}
 		}
+		++i;
 	}
-	catch (const std::runtime_error& e)
-	{
-		Logger::log(e.what(), ERROR);
-		throw std::runtime_error("Failed to setup servers");
-	}
+
+	if (_servers.size() == 0)
+		throw std::runtime_error("All servers' setup failed. Stopping...");
 }
 
 void Config::_addFd(int fd, uint32_t events)
@@ -204,16 +205,14 @@ void Config::_delFd(int fd)
 	if (fd < 0)
 		return;
 	
-	// Vérifier si le descripteur est toujours valide
 	struct stat statbuf;
 	if (fstat(fd, &statbuf) < 0) {
 		Logger::log("File descriptor " + Utils::toString(fd) + " already closed", INFO);
 		return;
 	}
 
-	if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, NULL) < 0) {
-		Logger::log("Failed to remove fd " + Utils::toString(fd) + " from epoll instance: " + strerror(errno), ERROR);
-	}
+	if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, NULL) < 0)
+		throw std::runtime_error("Failed to remove fd " + Utils::toString(fd) + " from epoll instance: " + strerror(errno));
 }
 
 void Config::_initEpoll()
@@ -222,9 +221,16 @@ void Config::_initEpoll()
 	if (_epollfd < 0)
 		throw std::runtime_error("Failed to create epoll instance");
 	
-	for (size_t i = 0; i < _servers.size(); ++i)
-	{
-		_addFd(_servers[i]->getSockFd(), EPOLLIN | EPOLLET);
+	for (size_t i = 0; i < _servers.size();) {
+		try {
+			_addFd(_servers[i]->getSockFd(), EPOLLIN | EPOLLET);
+		} catch (const std::exception &e) {
+			Logger::log("Server init: " + std::string(e.what()), ERROR);
+			Logger::log("Failed to init server at " + _servers[i]->getIp(), ERROR);
+			_servers.erase(_servers.begin() + i);
+			continue;
+		}
+		++i;
 	}
 
 	Logger::log("epoll instance created", DEBUG);
