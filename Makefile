@@ -213,8 +213,10 @@ dre:
 
 git:
 	@make fclean
+	@echo "$(CYAN)"
 	@git add .
 	@git commit -m "Auto commit"
 	@git push
+	@echo "$(GREEN)$(BOLD)\n 🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮  Done!  🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯\n$(RESET)"
 
 .PHONY: all clean fclean re vg debug pre_compile pre_compile_special clear git
