@@ -21,9 +21,9 @@ void Server::_parseSource(const std::string& source)
 		std::string line = Utils::removeSemicolon(Utils::removeWSpaces(lines[i]));
 		std::vector<std::string> strs = Utils::splitString(line, " ");
 		
-		if (strs[0] == "server" && i == 0) // ignore line
+		if (strs[0] == "server" && i == 0)
 		{}
-		else if (strs[0] == "location") // recursive location -> call Location(const string&)
+		else if (strs[0] == "location")
 		{
 			Utils::verify_args(strs, 2, 3);
 			std::string src = Utils::readBrackets(source, position);
@@ -285,32 +285,24 @@ Response Server::executeRequest(Request& req)
 {
 	Response rep;
 	
-	// Gérer la session avant d'exécuter la requête
 	_handleSession(req, rep);
 	
-	// Récupérer la location visée par la requête
 	Location *loc = _getLocation(req.path);
 	
-	// Si le chemin est vide ou "/", utiliser l'index configuré
 	if (req.path.empty() || req.path == "/") {
-		if (!loc->_index.empty())
-		{
-			// Modifier le chemin de la requête pour pointer vers l'index
+		if (!loc->_index.empty()) {
 			req.path = "/" + loc->_index;
-			// Mettre à jour la location avec le nouveau chemin
 			loc = _getLocation(req.path);
 		}
 	}
 	
 	std::string path = _findResourcePath(req, loc);
 	
-	// Vérifier d'abord si le fichier existe
 	req_type type = _getType(path);
 	if (type == T_NFD) {
 		return errorPage(404);
 	}
 	
-	// Vérification de la méthode
 	if (req.method != "GET" && req.method != "POST" && req.method != "DELETE") {
 		return errorPage(405);
 	}
@@ -319,42 +311,31 @@ Response Server::executeRequest(Request& req)
 		return _delete(req);
 	}
 
-	// Vérification des permissions et exécution du CGI si nécessaire
 	if (type == T_FILE) {
 		
-		// Sauvegarder le chemin original avec les paramètres
 		std::string originalPath = path;
 		
-		// Nettoyer le chemin en retirant les paramètres GET
 		size_t queryPos = path.find("?");
 		if (queryPos != std::string::npos) {
 			path = path.substr(0, queryPos);
 		}
 		Logger::log("path : " + path, DEBUG);
 		
-
-		// Corriger le log de access()
 		int access_result = access(path.c_str(), R_OK);
 		Logger::log("access result: " + Utils::toString(access_result) + " (errno: " + Utils::toString(errno) + ")", DEBUG);
 		
-		// Vérification des permissions de lecture
 		if (access(path.c_str(), R_OK) != 0) {
 			return errorPage(403);
-		}
-		// Restaurer le chemin original avec les paramètres
-		else {
+		} else {
 			path = originalPath;
-			// Vérification du Content-Type pour POST
 			if (req.method == "POST" && req.attributes.find("Content-Type") == req.attributes.end()) {
 				return errorPage(400);
 			}
 
-			// Ajouter la vérification de la méthode avant d'exécuter le CGI
 			if (!Utils::searchFor(loc->_allowed_methods, req.method)) {
 				return errorPage(405);
 			}
 
-			// Tentative d'exécution du CGI
 			try {
 				if (cgiHandler->executeCGI(req, path, loc, rep)) {
 					return rep;
@@ -379,13 +360,11 @@ Response Server::executeRequest(Request& req)
 	if (req.method == "POST")
 		return _post(req);
 	
-	// Si on arrive ici, c'est qu'il y a un problème inattendu
 	return errorPage(500);
 }
 
 req_type Server::_getType(const std::string& path)
 {
-	// Supprimer les paramètres GET de l'URL pour la vérification du type
 	std::string clean_path = path;
 	size_t pos = clean_path.find("?");
 	if (pos != std::string::npos) {
@@ -429,15 +408,12 @@ Response Server::_get(const Request& req)
 	rep.http = "HTTP/1.1";
 
 	try {
-		// Obtenir la location correspondante
 		Location *loc = _getLocation(req.path);
 		if (!loc) {
 			return errorPage(404);
 		}
 
-		// Vérifier si une redirection est configurée
 		if (!loc->_return.empty()) {
-			// Parser la ligne de return
 			std::vector<std::string> return_parts = Utils::splitString(loc->_return, " ");
 			if (return_parts.size() >= 3 && return_parts[0] == "return") {
 				rep.status = std::atoi(return_parts[1].c_str());
@@ -448,21 +424,17 @@ Response Server::_get(const Request& req)
 			}
 		}
 
-		// Vérification des permissions de méthode
 		if (!Utils::searchFor(loc->_allowed_methods, std::string("GET"))) {
 			return errorPage(405);
 		}
 
-		// Construction et vérification du chemin
 		std::string path = _findResourcePath(req, loc);
 		req_type type = _getType(path);
 
-		// Vérification des permissions de lecture
 		if (access(path.c_str(), R_OK) != 0 && type != T_NFD) {
 			return errorPage(403);
 		}
 
-		// Gestion des différents types de ressources
 		if (type == T_NFD) {
 			return errorPage(404);
 		}
@@ -470,16 +442,13 @@ Response Server::_get(const Request& req)
 			return _readFile(req, path);
 		}
 		else if (type == T_DIR) {
-			// Si le chemin ne se termine pas par '/', redirection
 			if (req.path[req.path.size() - 1] != '/') {
 				return errorPage(301);
 			}
 
-			// Vérification de l'index
 			if (!loc->_index.empty()) {
 				std::string idx_path = path + "/" + loc->_index;
 				if (_getType(idx_path) == T_FILE) {
-					// Vérification des permissions de lecture pour l'index
 					if (access(idx_path.c_str(), R_OK) != 0) {
 						return errorPage(403);
 					}
@@ -487,14 +456,12 @@ Response Server::_get(const Request& req)
 				}
 			}
 
-			// Si pas d'index valide, vérifier l'auto-index
 			if (loc->_auto_index) {
 				return _autoIndex(path);
 			}
 			return errorPage(403);
 		}
 
-		// Si on arrive ici, c'est qu'il y a un problème inattendu
 		return errorPage(500);
 
 	} catch(const std::exception& e) {
@@ -522,42 +489,34 @@ Response Server::_post(const Request& req)
 	rep.http = "HTTP/1.1";
 	
 	try {
-		// Vérification de la location
 		Location *loc = _getLocation(req.path);
 		if (!loc) {
 			return errorPage(404);
 		}
 
-		// Vérification des permissions de méthode
 		if (!Utils::searchFor(loc->_allowed_methods, std::string("POST"))) {
 			return errorPage(405);
 		}
 
-		// Vérification de la taille du body
 		if (req.body.size() > getMaxBodySize()) {
 			return errorPage(413);
 		}
 
-		// Vérification du Content-Type
 		if (req.attributes.find("Content-Type") == req.attributes.end()) {
 			return errorPage(400);
 		}
 
-		// Construction du chemin complet
 		std::string path = _findResourcePath(req, loc);
 		
-		// Vérification du dossier parent
 		std::string parent_dir = path.substr(0, path.find_last_of("/"));
 		if (!Utils::fileExists(parent_dir)) {
 			return errorPage(409);
 		}
 
-		// Vérification des permissions d'écriture
 		if (access(parent_dir.c_str(), W_OK) != 0) {
 			return errorPage(403);
 		}
 
-		// Traitement du fichier
 		if (Utils::fileExists(path)) {
 			std::ofstream file(path.c_str(), std::ios::binary);
 			if (!file.is_open()) {
@@ -574,7 +533,6 @@ Response Server::_post(const Request& req)
 			file.close();
 		}
 
-		// Succès
 		rep.status = 201;
 		rep.phrase = "Created";
 		rep.body = "{\"status\": \"success\", \"message\": \"File uploaded successfully\"}";
@@ -596,7 +554,6 @@ Response Server::_delete(Request& req)
 	rep.http = "HTTP/1.1";
 	
 	try {
-		// Log du chemin de la requête
 		Logger::log("DELETE request path: " + req.path, DEBUG);
 		
 		Location *loc = _getLocation(req.path);
@@ -605,7 +562,6 @@ Response Server::_delete(Request& req)
 			return errorPage(404);
 		}
 		
-		// Log des méthodes autorisées
 		Logger::log("Allowed methods for location: ", DEBUG);
 		for (size_t i = 0; i < loc->_allowed_methods.size(); i++) {
 			Logger::log(" - " + loc->_allowed_methods[i], DEBUG);
@@ -632,21 +588,18 @@ Response Server::_delete(Request& req)
 			}
 		}
 
-		// Log des permissions actuelles du fichier
 		Logger::log("Checking write permissions for: " + path, DEBUG);
 		if (access(path.c_str(), W_OK) != 0) {
 			Logger::log("No write permission for file: " + path + " (errno: " + Utils::toString(errno) + ")", ERROR);
 			return errorPage(403);
 		}
 
-		// Log de la tentative de suppression
 		Logger::log("Attempting to delete file: " + path, DEBUG);
 		if (remove(path.c_str()) != 0) {
 			Logger::log("Failed to delete file: " + path + " (errno: " + Utils::toString(errno) + ")", ERROR);
 			return errorPage(500);
 		}
 
-		// Succès
 		rep.status = 200;
 		rep.phrase = "OK";
 		rep.body = "{\"status\": \"success\", \"message\": \"File deleted successfully\"}";
@@ -670,7 +623,7 @@ std::string Server::_listDirectory(const std::string &path)
 
 	dir = opendir(path.c_str());
 	if (dir == NULL)
-		return "";  // If directory doesn't exist, return a 404 error
+		return "";
 		
 	html << "<html><head><title>Index of " << path << "</title></head><body>";
 	html << "<h1>Index of " << path << "</h1>";
@@ -680,12 +633,10 @@ std::string Server::_listDirectory(const std::string &path)
 	{
 		std::string name(ent->d_name);
 		
-		// Ignore "." and ".."
 		if (name == "." || name == "..") {
 			continue;
 		}
 
-		// Add a trailing slash if it's a directory
 		std::string display_name = name;
 		if (ent->d_type == DT_DIR) {
 			display_name += "/";
@@ -749,7 +700,6 @@ Response Server::_readFile(const Request& req, const std::string& path)
 	Logger::log("Reading file", DEBUG);
 	(void)req;
 
-	// Utiliser epoll pour lire les fichiers servis aux clients
 	_loadTypes();
 	std::string content = Utils::readFile(path, true);
 	Response rep;
@@ -763,7 +713,7 @@ Response Server::_readFile(const Request& req, const std::string& path)
 		if (_types.find(ext) != _types.end())
 			rep.attributes["Content-Type"] = _types[ext];
 		else
-			rep.attributes["Content-Type"] = "application/octet-stream";  // type par défaut
+			rep.attributes["Content-Type"] = "application/octet-stream";
 	}
 	Logger::log("Content-Type : " + rep.attributes["Content-Type"], DEBUG);
 	rep.http = "HTTP/1.1";
@@ -784,7 +734,6 @@ Server::~Server()
 {
 	delete cgiHandler;
 
-	// Nettoyer toutes les sessions
 	for (std::map<std::string, Session*>::iterator it = _sessions.begin(); 
 		 it != _sessions.end(); ++it) {
 		delete it->second;
@@ -799,10 +748,8 @@ Server::~Server()
 
 void Server::_handleSession(Request& req, Response& rep)
 {
-	// Nettoyer les sessions expirées
 	_cleanExpiredSessions();
 
-	// Chercher le cookie de session
 	std::string sessionId = "";
 	bool hasCookie = false;
 	if (req.attributes.find("Cookie") != req.attributes.end())
@@ -818,7 +765,6 @@ void Server::_handleSession(Request& req, Response& rep)
 		}
 	}
 
-	// Créer ou récupérer la session
 	Session* session;
 	if (sessionId.empty() || _sessions.find(sessionId) == _sessions.end())
 	{
@@ -826,7 +772,6 @@ void Server::_handleSession(Request& req, Response& rep)
 		if (_sessions[session->getId()])
 			delete _sessions[session->getId()];
 		_sessions[session->getId()] = session;
-		// Set cookie seulement si aucun cookie n'existe déjà
 		if (!hasCookie)
 			rep.attributes["Set-Cookie"] = "PHPSESSID=" + session->getId() + "; Path=/";
 	}

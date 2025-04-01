@@ -43,40 +43,62 @@ Client& Client::operator=(const Client& copy)
 int Client::getFd() {
 	return _fd;
 }
-
 bool Client::readRequest() {
     char buffer[BUFFER_SIZE + 1];
     std::string requestData;
-    bool requestComplete = false;
+    bool headerComplete = false;
+    size_t contentLength = 0;
+    size_t headerEnd = 0;
     
-    while (!requestComplete) {
+    while (true) {
         std::memset(buffer, 0, BUFFER_SIZE + 1);
         ssize_t bytes = recv(_fd, buffer, BUFFER_SIZE, 0);
         
         if (bytes < 0)
             return false;
         
-        if (bytes == 0) {
-            if (requestData.empty())
-                return false;
-            requestComplete = true;
-        } else {
+        if (bytes == 0 && requestData.empty())
+            return false;
+            
+        if (bytes > 0) {
             buffer[bytes] = '\0';
             requestData += buffer;
-            
-            if (requestData.find("\r\n\r\n") != std::string::npos)
-                requestComplete = true;
         }
+        
+        if (!headerComplete) {
+            headerEnd = requestData.find("\r\n\r\n");
+            if (headerEnd != std::string::npos) {
+                headerComplete = true;
+                
+                std::string contentLengthHeader = "Content-Length: ";
+                size_t contentLengthPos = requestData.find(contentLengthHeader);
+                if (contentLengthPos != std::string::npos) {
+                    size_t valueStart = contentLengthPos + contentLengthHeader.length();
+                    size_t valueEnd = requestData.find("\r\n", valueStart);
+                    std::string lengthStr = requestData.substr(valueStart, valueEnd - valueStart);
+                    contentLength = static_cast<size_t>(strtoul(lengthStr.c_str(), NULL, 10));
+                }
+            }
+        }
+        
+        if (headerComplete) {
+            if (contentLength == 0 || requestData.length() >= headerEnd + 4 + contentLength) {
+                break;
+            }
+        }
+        
+        if (bytes == 0)
+            break;
     }
-	
-	try {
-		_server->pushRequest(new Request(std::string(buffer), this));
-		return true;
-	}
-	catch (const std::exception& e) {
-		Logger::log(e.what(), ERROR);
-		return false;
-	}
+    
+    try {
+        _server->pushRequest(new Request(requestData, this));
+        return true;
+    }
+    catch (const std::exception& e) {
+        Logger::log(e.what(), ERROR);
+        return false;
+    }
 }
 
 // bool Client::executeRequest()

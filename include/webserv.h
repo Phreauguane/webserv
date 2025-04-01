@@ -18,6 +18,7 @@
 #include <cstring>
 #include <ctime>
 #include <csignal>
+#include <climits>
 
 #include <fstream>
 #include <sstream>

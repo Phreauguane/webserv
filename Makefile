@@ -207,6 +207,10 @@ re:
 	@make fclean
 	@make all
 
+dre:
+	@make fclean
+	@make debug
+
 git:
 	@git add .
 	@git commit -m "Auto commit"
