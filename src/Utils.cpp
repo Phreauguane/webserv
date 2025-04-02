@@ -248,6 +248,13 @@ std::string Utils::toString(size_t s)
 	return ss.str();
 }
 
+std::string Utils::toString(ssize_t s)
+{
+	std::stringstream ss;
+	ss << s;
+	return ss.str();
+}
+
 std::string Utils::getExt(const std::string &str)
 {
 	size_t pos = str.find_last_of(".");
@@ -308,4 +315,37 @@ std::string Utils::replaceDigits(const std::string& input) {
     }
     
     return result;
+}
+
+bool Utils::isSocketValid(int socketFd) {
+    // Vérifier si le descripteur existe
+    if (fcntl(socketFd, F_GETFL) < 0) {
+        return false;
+    }
+    
+    // Vérifier l'état du socket
+    int error = 0;
+    socklen_t len = sizeof(error);
+    if (getsockopt(socketFd, SOL_SOCKET, SO_ERROR, &error, &len) < 0 || error != 0) {
+        return false;
+    }
+    
+    return true;
+}
+
+std::string Utils::trimString(const std::string& str) {
+	std::string::size_type start = str.find_first_not_of(" \t");
+	if (start == std::string::npos) {
+		return "";
+	}
+	std::string::size_type end = str.find_last_not_of(" \t");
+	return str.substr(start, end - start + 1);
+}
+
+std::string Utils::toLowerCase(const std::string& str) {
+	std::string result = str;
+	for (size_t i = 0; i < result.size(); ++i) {
+		result[i] = tolower(result[i]);
+	}
+	return result;
 }

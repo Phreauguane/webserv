@@ -7,6 +7,35 @@
 
 class Server;
 
+enum ReqStatus {
+	NONE,
+	DISCONNECT,
+	INCOMPLETE,
+	FINISHED
+};
+
+enum ChunkState {
+	CHUNK_SIZE,
+	CHUNK_DATA,
+	CHUNK_END,
+	CHUNK_COMPLETE
+};
+
+struct BodyInfo {
+    enum Type {
+        BODY_NONE,
+        BODY_CONTENT_LENGTH,
+        BODY_CHUNKED,
+        BODY_UNKNOWN
+    };
+    
+    Type type;
+    size_t length;
+
+    BodyInfo() : type(BODY_NONE), length(0) {}
+    BodyInfo(Type t, size_t l) : type(t), length(l) {}
+};
+
 class Client
 {
 public:
@@ -16,20 +45,41 @@ public:
 	Client& operator=(const Client&);
 	int getFd();
 	std::string getLatestRequest();
-	bool readRequest();
+	ReqStatus readRequest();
+	bool isIncomplete() const;
+	void sendContinue();
 	bool sendResponse();
+	bool checkTimeout(size_t) const;
 	void addResponse(Response&);
 	void runRequests();
 	~Client();
+private:
+	ReqStatus _readLengthBody();
+	ReqStatus _readChunkedBody();
 
-	class BufferOverflowException: public std::exception {
-		virtual const char *what() const throw();
-	};
+	ReqStatus _handleReadErr();
+	void _pushRequest();
+	void _resetState();
+	void _saveReadState(size_t, size_t, ReqStatus);
+	bool _isHeaderComplete() const;
+	BodyInfo _identifyBodyType(const std::string&);
 private:
 	Server* _server;
 	int _fd;
 	size_t _size;
+	size_t _lastAction;
 	std::vector<Response> _reps;
-	//Temp
-	std::string _id;
+
+	// request reading
+	std::vector<char> _requestData;
+	size_t _header;
+	size_t _readPos;
+	size_t _remaining;
+	ReqStatus _status;
+
+	// header data
+	bool _headerComplete;
+	BodyInfo _info;
+	ChunkState _chunkState;
+	std::vector<char> _chunk;
 };

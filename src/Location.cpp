@@ -103,6 +103,8 @@ void Location::parseLine(const std::vector<std::string>& strs)
 	else if (strs[0] == "upload_dir")
 	{
 		Utils::verify_args(strs, 2, 2);
+		if (strs[1][strs[1].size() - 1] != '/' || (strs[1][0] == '/' && strs[1].size() > 1))
+			throw std::runtime_error("Upload dir must be formated 'directory/'");
 		_upload = strs[1];
 	}
 	else if (strs[0] == "autoindex")

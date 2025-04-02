@@ -76,6 +76,7 @@ void Config::run(bool *shouldClose)
 		} catch (const std::exception &e) {
 			Logger::log("Request error: " + std::string(e.what()), ERROR);
 		}
+		_checkForTimeouts();
     }
 }
 
@@ -103,6 +104,17 @@ void Config::_checkForConnections(size_t nfds)
     }
 }
 
+void Config::_disconnectClient(size_t i) {
+	try {
+		this->_delFd(_clients[i]->getFd());
+		delete _clients[i];
+		_clients.erase(_clients.begin() + i);
+	} catch (const std::exception &e) {
+		Logger::log("Failed to disconnect client", ERROR);
+		Logger::log(e.what(), DEBUG);
+	}
+}
+
 void Config::_handleRequests(size_t nfds)
 {
     for (size_t i = 0; i < nfds; i++) {
@@ -117,46 +129,54 @@ void Config::_handleRequests(size_t nfds)
         if (events & EPOLLHUP) oss << "EPOLLHUP ";
         Logger::log(oss.str(), INFO);
 
-        for (size_t j = 0; j < _clients.size();)
-        {
-            if (fd == _clients[j]->getFd())
-            {
-                bool disconnect = false;
-                if (events & EPOLLIN)
-                {
-                    Logger::log("Reading request...", INFO);
-                    if (_clients[j]->readRequest()) {
+        for (size_t j = 0; j < _clients.size();) {
+            if (fd == _clients[j]->getFd()) {
+                if (events & EPOLLIN) {
+					ReqStatus stat = _clients[j]->readRequest();
+					if (stat == FINISHED) {
 						_clients[j]->runRequests();
-                        
-                        Logger::log("Request read successfully, modifying FD for EPOLLOUT", INFO);
-                        _modFd(fd, EPOLLIN | EPOLLOUT | EPOLLET);
-                    } else {
-                        Logger::log("Read failed, marking for disconnect", ERROR);
-                        disconnect = true;
-                    }
-                }
-                else if (events & EPOLLOUT)
-                {
-                    Logger::log("Writing response...", INFO);
-                    if (_clients[j]->sendResponse())
-                        Logger::log("Response sent successfully", INFO);
-                    else
-                        Logger::log("Send failed, marking for disconnect", ERROR);
-                    disconnect = true;
-                }
 
-                if (disconnect)
-                {
-                    Logger::log("Closing connection", INFO);
-					this->_delFd(_clients[j]->getFd());
-                    delete _clients[j];
-                    _clients.erase(_clients.begin() + j);
+						Logger::log("Request executed modifying FD for EPOLLIN | EPOLLOUT", DEBUG);
+						_modFd(_clients[j]->getFd(), EPOLLIN | EPOLLOUT);
+					} else if (stat == INCOMPLETE) {
+						Logger::log("Request incomplete modifying FD for EPOLLIN", DEBUG);
+						_modFd(_clients[j]->getFd(), EPOLLIN);
+					} else if (stat == DISCONNECT) {
+						_disconnectClient(j);
+						continue;
+					}
+				}
+
+				if (events & EPOLLOUT) {
+					if (_clients[j]->sendResponse() && _clients[j]->isIncomplete()) {
+						Logger::log("Sent response modifying FD for EPOLLIN", DEBUG);
+						_modFd(_clients[j]->getFd(), EPOLLIN);
+					} else {
+						Logger::log("Sent response disconnecting...", DEBUG);
+						_disconnectClient(j);
+						continue;
+					}
+				}
+
+				if (events & EPOLLERR || events & EPOLLHUP) {
+					_disconnectClient(j);
 					continue;
-                }
+				}
             }
 			++j;
         }
     }
+}
+
+void Config::_checkForTimeouts() {
+	size_t now = time(NULL);
+	
+	for (size_t i = 0; i < _clients.size(); ++i) {
+		if (_clients[i]->checkTimeout(now)) {
+            Logger::log("Client timeout: closing connection", INFO);
+			_disconnectClient(i);
+		}
+	}
 }
 
 void Config::_setupServers()

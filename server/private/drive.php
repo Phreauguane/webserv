@@ -7,7 +7,7 @@ if (!isLoggedIn()) {
 }
 
 // Définir le dossier à scanner
-$upload_dir = 'uploads/';
+$upload_dir = getenv("UPLOAD_DIR");
 
 // Fonction pour formater la taille des fichiers
 function formatBytes($bytes) {
@@ -22,7 +22,7 @@ function formatBytes($bytes) {
 // Ajouter cette partie au début du fichier, après les vérifications de session
 if (isset($_GET['download']) && !empty($_GET['download'])) {
     $filename = basename($_GET['download']);
-    $filepath = 'uploads/' . $filename;
+    $filepath = $upload_dir . $filename;
     
     if (file_exists($filepath)) {
         // Détection du type MIME

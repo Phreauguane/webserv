@@ -17,12 +17,12 @@ namespace Utils
 	std::string toString(int);
 	std::string toString(float);
 	std::string toString(size_t);
+	std::string toString(ssize_t);
 	std::vector<std::string> splitString(const std::string&, const std::string&);
 	int inet_pton_v4(const std::string&, in_addr_t*);
 	void verify_args(const std::vector<std::string>&, size_t, size_t);
 	template <typename T>
-	bool searchFor(const std::vector<T>& vec, const T& e)
-	{
+	bool searchFor(const std::vector<T>& vec, const T& e) {
 		return std::find(vec.begin(), vec.end(), e) != vec.end();
 	}
 	std::string getExt(const std::string&);
@@ -30,4 +30,7 @@ namespace Utils
 	std::string generateRandomString(size_t length);
 	bool fileExists(const std::string& path);
 	std::string replaceDigits(const std::string& input);
+	bool isSocketValid(int);
+	std::string trimString(const std::string&);
+	std::string toLowerCase(const std::string&);
 }

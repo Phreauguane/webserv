@@ -64,6 +64,11 @@ void Server::_parseSource(const std::string& source)
 			Utils::verify_args(strs, 2, 2);
 			_max_body_size = std::atoi(strs[1].c_str());
 		}
+		else if (strs[0] == "timeout_ms")
+		{
+			Utils::verify_args(strs, 2, 2);
+			_timeout = static_cast<size_t>(strtoul(strs[1].c_str(), NULL, 10));
+		}
 		else if (strs[0] == "{" || strs[0] == "}")
 		{}
 		else
@@ -71,13 +76,17 @@ void Server::_parseSource(const std::string& source)
 	}
 }
 
-Server::Server(const std::string& source, char **env)
+Server::Server(const std::string& source, char **env): _timeout(DEFAULT_TIMEOUT)
 {
 	_env = env;
 	cgiHandler = new CGI(this);
 	cgiHandler->setup(_env);
 	_root_loc = new Location(_env);
 	_parseSource(source);
+}
+
+size_t Server::getTimeout() const {
+	return _timeout;
 }
 
 void Server::pushRequest(Request *req)

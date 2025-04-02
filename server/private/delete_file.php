@@ -30,7 +30,7 @@ if (!isset($_POST['file'])) {
 }
 
 $filename = basename($_POST['file']);
-$filepath = __DIR__ . "/uploads/" . $filename;
+$filepath = __DIR__ . "/" . getenv("UPLOAD_DIR") . $filename;
 
 try {
     // Vérifier si le fichier existe

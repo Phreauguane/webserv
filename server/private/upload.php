@@ -13,7 +13,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (!isset($error)) {
         if (!file_exists($dossier_destination)) {
             if (!mkdir($dossier_destination, 0777, true)) {
-                die("Erreur : Impossible de créer le dossier 'uploads/'");
+                die("Erreur : Impossible de créer le dossier");
             }
         }
 
@@ -43,19 +43,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $error .= "Erreur inconnue";
             }
         } else {
-            // Nettoyer le nom du fichier
             $filename = basename($_FILES["fichier"]["name"]);
             
-            // Convertir les caractères spéciaux en ASCII
             $filename = iconv('UTF-8', 'ASCII//TRANSLIT', $filename);
             
-            // Remplacer les espaces par des tirets bas
             $filename = str_replace(' ', '_', $filename);
             
-            // Supprimer tous les caractères non alphanumériques (sauf points et tirets bas)
             $filename = preg_replace('/[^A-Za-z0-9._-]/', '', $filename);
             
-            // Initialiser le compteur avant la boucle
             $counter = 1;
             $fichier_cible = $dossier_destination . $filename;
             
@@ -151,7 +146,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     });
 
-    // Validation du formulaire avant soumission
     document.querySelector('form').addEventListener('submit', function(e) {
         const file = document.getElementById('fichier').files[0];
         const maxSize = 30 * 1024; // 30KB
