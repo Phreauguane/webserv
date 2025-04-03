@@ -8,8 +8,9 @@ Client::Client(const Client& copy)
 	*this = copy;
 }
 
-Client::Client(Server *server) : _server(server), _fd(-1), _size(0), _chunkState(CHUNK_SIZE)
+Client::Client(Server *server) : _server(server), _fd(-1), _size(0), _headerComplete(false), _chunkState(CHUNK_SIZE)
 {
+    this->_resetState();
 	_fd = accept(_server->getSockFd(), NULL, NULL);
 	if (_fd < 0)
 		throw std::runtime_error("connection failed");
@@ -41,11 +42,11 @@ int Client::getFd() {
 }
 
 bool Client::checkTimeout(size_t now) const {
-    return (now - _lastAction) > _server->getTimeout();
+    return ((now - _lastAction) * 1000) > _server->getTimeout();
 }
 
-bool Client::_isHeaderComplete() const {
-    return std::find(_requestData.begin(), _requestData.end(), "\r\n\r\n") != _requestData.end();
+bool Client::_isHeaderComplete() {
+    return Utils::findIndex(_requestData, "\r\n\r\n") != -1;
 }
 
 BodyInfo Client::_identifyBodyType(const std::string& rawHeaders) {
@@ -140,13 +141,13 @@ BodyInfo Client::_identifyBodyType(const std::string& rawHeaders) {
 }
 
 void Client::_resetState() {
-    _requestData = std::vector<char>();
+    _requestData = std::vector<char>(0);
+    _chunk = std::vector<char>(0);
     _readPos = 0;
     _remaining = 0;
     _status = NONE;
     _headerComplete = false;
     _info = BodyInfo();
-    _chunk = std::vector<char>();
     _chunkState = CHUNK_SIZE;
 }
 
@@ -178,6 +179,7 @@ ReqStatus Client::_readLengthBody() {
     
     Logger::log("[Content-Length: " + Utils::toString(_info.length) + "]", DEBUG);
     _remaining = (_header + _info.length) - _requestData.size();
+    Logger::log("[Remaining: " + Utils::toString(_remaining) + "]", DEBUG);
 
     std::vector<char> buffer(_remaining + 1);
     ssize_t bytes_ = recv(_fd, buffer.data(), _remaining, MSG_DONTWAIT);
@@ -185,13 +187,13 @@ ReqStatus Client::_readLengthBody() {
     if (bytes_ < 0) {
         return _handleReadErr();
     } else if (bytes_ < static_cast<ssize_t>(_remaining)) {
-        _requestData.insert(_requestData.begin(), buffer.begin(), buffer.begin() + bytes_);
+        _requestData.insert(_requestData.end(), buffer.begin(), buffer.begin() + bytes_);
         _saveReadState(_readPos + bytes_, _remaining - bytes_, INCOMPLETE);
         return INCOMPLETE;
     } else {
         Logger::log("Remaining before: " + Utils::toString(_remaining), DEBUG);
         Logger::log("bytes: " + Utils::toString(bytes_), DEBUG);
-        _requestData.insert(_requestData.begin(), buffer.begin(), buffer.begin() + bytes_);
+        _requestData.insert(_requestData.end(), buffer.begin(), buffer.begin() + bytes_);
         _remaining = (_header + _info.length) - _requestData.size();
         Logger::log("Remaining: " + Utils::toString(_remaining), DEBUG);
         if (_remaining == 0) {
@@ -223,7 +225,7 @@ ReqStatus Client::_readChunkedBody() {
                 return INCOMPLETE;
             } else {
                 _chunk.push_back(buff);
-                if (std::find(_chunk.begin(), _chunk.end(), "\r\n") != _chunk.end()) {
+                if (Utils::find(_chunk, "\r\n") != _chunk.end()) {
                     if (_chunk[0] == '0' && _chunk[1] == '\r' && _chunk[2] == '\n') {
                         _chunkState = CHUNK_COMPLETE;
                         continue;
@@ -271,7 +273,7 @@ ReqStatus Client::_readChunkedBody() {
                 return INCOMPLETE;
             } else {
                 _chunk.push_back(buff);
-                if (std::find(_chunk.begin(), _chunk.end(), "\r\n") != _chunk.end()) {
+                if (Utils::find(_chunk, "\r\n") != _chunk.end()) {
                     _chunk = std::vector<char>();
                     _chunkState = CHUNK_SIZE;
                 }
@@ -287,37 +289,47 @@ ReqStatus Client::_readChunkedBody() {
     }
 }
 
+void Client::resetState() {
+    _resetState();
+}
+
 ReqStatus Client::readRequest() {
     if (!Utils::isSocketValid(_fd)) {
         Logger::log("Invalid socket, disconnecting...", ERROR);
         _saveReadState(_readPos, _remaining, DISCONNECT);
         return DISCONNECT;
     }
-    
-    _lastAction = time(NULL); // reset timeout
+
+    Logger::log("Received request. headerComplete: " + std::string(_headerComplete ? "true" : "false"), DEBUG);
 
     while (true) {
-        char buffer = '\0';
-        ssize_t bytes = recv(_fd, &buffer, 1, MSG_DONTWAIT);
-        if (bytes > 0)   
-            _requestData.push_back(buffer);
+        if (!_headerComplete && !_isHeaderComplete()) {
+            char buffer = '\0';
+            ssize_t bytes = recv(_fd, &buffer, 1, MSG_DONTWAIT);
+            if (bytes > 0) {
+                _requestData.push_back(buffer);
+                _lastAction = time(NULL); // reset timeout
+            }
 
-        if (bytes < 0) {
-            return _handleReadErr();
-        } else if (bytes == 0) {
-            Logger::log("Reached EOF", DEBUG);
-            _saveReadState(_readPos, _remaining, INCOMPLETE);
-            return INCOMPLETE;
+            if (bytes < 0) {
+                return _handleReadErr();
+            } else if (bytes == 0) {
+                Logger::log("Reached EOF", DEBUG);
+                _saveReadState(_readPos, _remaining, INCOMPLETE);
+                return INCOMPLETE;
+            }
         }
 
         if (_headerComplete || _isHeaderComplete()) {
             Logger::log("headerComplete: " + std::string(_headerComplete ? "true" : "false"), DEBUG);
+            Logger::log("Request size: " + Utils::toString(_requestData.size()), DEBUG);
             if (!_headerComplete) {
                 Logger::log("Header read", DEBUG);
                 Logger::log(std::string(_requestData.begin(), _requestData.end()), TEXT);
                 _headerComplete = true;
-                _header = std::find(_requestData.begin(), _requestData.end(), "\r\n\r\n") + 4;
+                _header = Utils::findIndex(_requestData, "\r\n\r\n") + 4;
                 _info = _identifyBodyType(std::string(_requestData.begin(), _requestData.end()));
+                Logger::log("header index: " + Utils::toString(_header), DEBUG);
             }
             
             if (_info.type == BodyInfo::BODY_CONTENT_LENGTH) {
@@ -375,7 +387,7 @@ void Client::runRequests() {
 void Client::_pushRequest() {
     Request *req = NULL;
     try {
-        req = new Request(std::string(_requestData.begin(), _requestData.end()), this);
+        req = new Request(_requestData, this);
         _server->pushRequest(req);
     } catch (const std::exception &e) {
         Logger::log("Failed to create request" + std::string(e.what()), ERROR);

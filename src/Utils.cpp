@@ -349,3 +349,39 @@ std::string Utils::toLowerCase(const std::string& str) {
 	}
 	return result;
 }
+
+std::vector<char>::iterator Utils::find(std::vector<char>& vec, const std::string& str) {
+    if (str.empty() || vec.empty() || str.size() > vec.size()) {
+        return vec.end();
+    }
+    
+    return std::search(vec.begin(), vec.end(), str.begin(), str.end());
+}
+
+ssize_t Utils::findIndex(std::vector<char>& vec, const std::string& str) {
+    if (str.empty() || vec.empty() || str.size() > vec.size())
+        return -1;
+    
+    std::vector<char>::iterator res = std::search(vec.begin(), vec.end(), str.begin(), str.end());
+
+	if (res == vec.end())
+		return -1;
+	return res - vec.begin();
+}
+
+ssize_t Utils::findIndex(std::vector<char>& vec, const std::string& str, const ssize_t& start) {
+    if (str.empty() || vec.empty() || (str.size() + start) > vec.size())
+        return -1;
+    
+    std::vector<char>::iterator res = std::search(vec.begin() + start, vec.end(), str.begin(), str.end());
+
+	if (res == vec.end())
+		return -1;
+	return res - vec.begin();
+}
+
+std::string Utils::toString(const std::vector<char> &vec) {
+	if (vec.size() == 0)
+		return "";
+	return std::string(vec.data());
+}

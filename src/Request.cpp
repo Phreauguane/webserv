@@ -11,7 +11,7 @@ Request::Request(const Request& copy)
 	*this = copy;
 }
 
-Request::Request(const std::string& req, Client *client)
+Request::Request(const std::vector<char>& req, Client *client)
 {
 	this->request = req;
 	this->client = client;
@@ -22,14 +22,14 @@ Request::Request(const std::string& req, Client *client)
 
 void Request::parseRequest()
 {
-	size_t headerEnd = request.find("\r\n\r\n");
+	size_t headerEnd = Utils::findIndex(request, "\r\n\r\n");
 	if (headerEnd == std::string::npos)
 	{
 		Logger::log("Invalid request format: no header-body separator found", ERROR);
 		return;
 	}
 
-	std::string headers = request.substr(0, headerEnd);
+	std::string headers = std::string(request.begin(), request.begin() + headerEnd);
 	
 	std::vector<std::string> lines = Utils::splitString(headers, "\n");
 	for (size_t i = 0; i < lines.size(); i++)
@@ -64,19 +64,10 @@ void Request::parseRequest()
 		}
 	}
 
-	if (headerEnd + std::string("\r\n\r\n").size() < request.length())
+	if (headerEnd + std::string("\r\n\r\n").size() < request.size())
 	{
-		try {
-			std::size_t length = SIZE_MAX;
-			std::string attrib = attributes.at("Content-Length");
-			std::stringstream len;
-			len << attrib;
-			len >> length;
-			body = request.substr(headerEnd + 4, length);
-		} catch (...) {
-			body = request.substr(headerEnd + 4);
-		}
-		Logger::log("Body size after initial parsing: " + Utils::toString(body.length()), DEBUG);
+		body = std::vector<char>(request.begin() + headerEnd + 4, request.end());
+		Logger::log("Body size after initial parsing: " + Utils::toString(body.size()), DEBUG);
 		
 		std::map<std::string, std::string>::iterator it = attributes.find("Content-Type");
 		if (it != attributes.end() && it->second.find("multipart/form-data") != std::string::npos) {
@@ -99,35 +90,35 @@ void Request::parseMultipartFormData()
 	std::string boundaryStart = "--" + boundary;
 	std::string boundaryEnd = "--" + boundary + "--";
 	
-	size_t startPos = body.find(boundaryStart);
-	if (startPos == std::string::npos)
+	ssize_t startPos = Utils::findIndex(body, boundaryStart);
+	if (startPos == -1)
 	{
 		Logger::log("Start boundary not found", ERROR);
 		return;
 	}
 	
-	startPos = body.find("\r\n", startPos);
-	if (startPos == std::string::npos)
+	startPos = Utils::findIndex(body, "\r\n", startPos);
+	if (startPos == -1)
 	{
 		Logger::log("Invalid boundary format", ERROR);
 		return;
 	}
 	startPos += 2;
 	
-	size_t headerEnd = body.find("\r\n\r\n", startPos);
-	if (headerEnd == std::string::npos)
+	ssize_t headerEnd = Utils::findIndex(body, "\r\n\r\n", startPos);
+	if (headerEnd == -1)
 	{
 		Logger::log("Header end not found", ERROR);
 		return;
 	}
 	
-	size_t contentStart = headerEnd + 4;
+	ssize_t contentStart = headerEnd + 4;
 	
-	size_t contentEnd = body.find("\r\n" + boundaryEnd, contentStart);
-	if (contentEnd == std::string::npos)
+	ssize_t contentEnd = Utils::findIndex(body, "\r\n" + boundaryEnd, contentStart);
+	if (contentEnd == -1)
 	{
-		contentEnd = body.find("\r\n" + boundaryStart, contentStart);
-		if (contentEnd == std::string::npos)
+		contentEnd = Utils::findIndex(body, "\r\n" + boundaryStart, contentStart);
+		if (contentEnd == -1)
 		{
 			Logger::log("End boundary not found", ERROR);
 			return;
@@ -136,7 +127,7 @@ void Request::parseMultipartFormData()
 	
 	if (contentEnd > contentStart)
 	{
-		body = body.substr(contentStart, contentEnd - contentStart);
+		body = std::vector<char>(body.begin() + contentStart, body.begin() + contentEnd);
 	}
 	else
 	{
@@ -172,7 +163,7 @@ void Request::logData()
 		Logger::log("keep_alive = TRUE", TEXT);
 	else
 		Logger::log("keep_alive = FALSE", TEXT);
-	Logger::log("body = \\\n" + body, TEXT);
+	Logger::log(body, TEXT);
 }
 
 Request::~Request()

@@ -9,6 +9,19 @@ namespace Logger
 	log_level min_lvl = TEXT;
 	std::vector<std::string> errors;
 	
+	void log(const std::vector<char>& message, const log_level level) {
+		std::string str = "";
+
+		for (size_t i = 0; i < message.size(); i++) {
+			if (message[i] == '\0')
+				str += "\\0";
+			else 
+				str += message[i];
+		}
+		
+		Logger::log(str, level);
+	}
+
 	void log(const std::string& message, const log_level level)
 	{
 		// "●◆◈◉"

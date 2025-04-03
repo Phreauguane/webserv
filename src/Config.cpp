@@ -134,9 +134,10 @@ void Config::_handleRequests(size_t nfds)
                 if (events & EPOLLIN) {
 					ReqStatus stat = _clients[j]->readRequest();
 					if (stat == FINISHED) {
+						// _clients[j]->resetState();
 						_clients[j]->runRequests();
 
-						Logger::log("Request executed modifying FD for EPOLLIN | EPOLLOUT", DEBUG);
+						Logger::log("Request executed modifying FD for EPOLLIN | EPOLLOUT", SUCCESS);
 						_modFd(_clients[j]->getFd(), EPOLLIN | EPOLLOUT);
 					} else if (stat == INCOMPLETE) {
 						Logger::log("Request incomplete modifying FD for EPOLLIN", DEBUG);

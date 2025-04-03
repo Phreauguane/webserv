@@ -536,14 +536,14 @@ Response Server::_post(const Request& req)
 			if (!file.is_open()) {
 				return errorPage(500);
 			}
-			file.write(req.body.c_str(), req.body.size());
+			file.write(req.body.data(), req.body.size());
 			file.close();
 		} else {
 			std::ofstream file(path.c_str(), std::ios::binary);
 			if (!file.is_open()) {
 				return errorPage(500);
 			}
-			file.write(req.body.c_str(), req.body.size());
+			file.write(req.body.data(), req.body.size());
 			file.close();
 		}
 

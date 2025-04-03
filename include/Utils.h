@@ -33,4 +33,9 @@ namespace Utils
 	bool isSocketValid(int);
 	std::string trimString(const std::string&);
 	std::string toLowerCase(const std::string&);
+
+	std::vector<char>::iterator find(std::vector<char>&, const std::string&);
+	ssize_t findIndex(std::vector<char>&, const std::string&);
+	ssize_t findIndex(std::vector<char>&, const std::string&, const ssize_t&);
+	std::string toString(const std::vector<char>&);
 }

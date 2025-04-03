@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <vector>
 #include <string>
 #include <fcntl.h>
 #include <fstream>
@@ -36,6 +37,7 @@ namespace Logger
 	extern std::fstream log_file;
 	extern log_level min_lvl;
 	
+	void log(const std::vector<char>&, const log_level);
 	void log(const std::string&, const log_level);
 	void setMinLogLevel(log_level);
 	void setLogFile(const std::string&);

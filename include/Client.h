@@ -52,6 +52,7 @@ public:
 	bool checkTimeout(size_t) const;
 	void addResponse(Response&);
 	void runRequests();
+	void resetState();
 	~Client();
 private:
 	ReqStatus _readLengthBody();
@@ -61,7 +62,7 @@ private:
 	void _pushRequest();
 	void _resetState();
 	void _saveReadState(size_t, size_t, ReqStatus);
-	bool _isHeaderComplete() const;
+	bool _isHeaderComplete();
 	BodyInfo _identifyBodyType(const std::string&);
 private:
 	Server* _server;

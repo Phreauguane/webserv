@@ -269,7 +269,7 @@ Response handleParentProcessToutCourt(int* pipefd, pid_t pid, CGI* cgi, Request&
     return cgi->_parseOutputPHP(result, req);
 }
 
-std::string CGI::_getQuery(const Request& req)
+std::vector<char> CGI::_getQuery(const Request& req)
 {
 	if (req.method == "POST") {
 		// Vérifier si Content-Type existe
@@ -296,14 +296,15 @@ std::string CGI::_getQuery(const Request& req)
 
 				// Extraire le nom du fichier avec vérification
 				std::string filename = "unknown";
-				size_t filenamePos = req.request.find("filename=\"");
-				if (filenamePos != std::string::npos) {
+				std::vector<char> request = req.request;
+				ssize_t filenamePos = Utils::findIndex(request, std::string("filename=\""));
+				if (filenamePos != -1) {
 					filenamePos += 10;
-					size_t filenameEnd = req.request.find("\"", filenamePos);
-					if (filenameEnd == std::string::npos) {
+					ssize_t filenameEnd = Utils::findIndex(request, "\"", filenamePos);
+					if (filenameEnd == -1) {
 						throw std::runtime_error("Malformed filename in multipart/form-data");
 					}
-					filename = req.request.substr(filenamePos, filenameEnd - filenamePos);
+					filename = std::string(request.begin() + filenamePos, request.begin() + filenameEnd);
 				}
 
 				// Vérifier la taille du body
@@ -332,7 +333,7 @@ std::string CGI::_getQuery(const Request& req)
 					throw std::runtime_error("Memory allocation failed for POST data");
 				}
 				
-				return std::string(body.begin(), body.end());
+				return body;
 			}
 			catch (const std::exception& e) {
 				Logger::log("Error in _getQuery: " + std::string(e.what()), ERROR);
@@ -345,10 +346,10 @@ std::string CGI::_getQuery(const Request& req)
 	if (req.method == "GET") {
 		size_t pos = req.path.find("?");
 		if (pos != std::string::npos) {
-			return req.path.substr(pos + 1);
+			return std::vector<char>(req.path.begin() + pos + 1, req.path.end());
 		}
 	}
-	return "";
+	return std::vector<char>();
 }
 
 static std::string get_paths(char **envp)
@@ -415,15 +416,16 @@ Response CGI::_execPHP(const std::string& path, Location *loc, Request& req)
 	}
 
 	// Préparer la query et calculer sa taille
-	std::string query = _getQuery(req);
-	Logger::log("query : " + query, DEBUG);
+	std::vector<char> query = _getQuery(req);
+	Logger::log("query : ", DEBUG);
+	Logger::log(query, DEBUG);
 	Logger::log("path : " + path, DEBUG);
 	
 	// Variables d'environnement pour l'upload
 	std::string request_method = "REQUEST_METHOD=" + req.method;
 	std::string content_type = "CONTENT_TYPE=" + req.attributes["Content-Type"];
 	// Utiliser la taille de la query au lieu de req.body.size()
-	std::string content_length = "CONTENT_LENGTH=" + Utils::toString(query.length());
+	std::string content_length = "CONTENT_LENGTH=" + Utils::toString(query.size());
 	std::string script_filename = "SCRIPT_FILENAME=" + clean_path;
 	std::string session_env = "HTTP_COOKIE=PHPSESSID=" + session_id;
 	std::string upload_tmp_dir = "UPLOAD_DIR=" + (loc->_upload == "" ? "/uploads/" : loc->_upload);
@@ -431,11 +433,11 @@ Response CGI::_execPHP(const std::string& path, Location *loc, Request& req)
 	std::string server_protocol = "SERVER_PROTOCOL=HTTP/1.1";
 	std::string document_root = "DOCUMENT_ROOT=" + clean_path.substr(0, clean_path.find_last_of("/"));
 	std::string script_name = "SCRIPT_NAME=" + clean_path.substr(clean_path.find_last_of("/"));
-	std::string query_string = "QUERY_STRING=" + query;
+	std::string query_string = "QUERY_STRING=" + Utils::toString(query);
 
 	// Log des informations importantes
 	Logger::log("Content-Length original: " + Utils::toString(req.body.size()), DEBUG);
-	Logger::log("Content-Length final: " + Utils::toString(query.length()), DEBUG);
+	Logger::log("Content-Length final: " + Utils::toString(query.size()), DEBUG);
 	Logger::log("Upload tmp dir: " + upload_tmp_dir, DEBUG);
 
 	// Préparer les variables de session pour PHP
@@ -473,7 +475,7 @@ Response CGI::_execPHP(const std::string& path, Location *loc, Request& req)
 	{
 		try
 		{
-			_executeCommand(php_cgi, query, args, envp, pipefd);
+			_executeCommand(php_cgi, Utils::toString(query), args, envp, pipefd);
 		}
 		catch(const std::runtime_error& e)
 		{
@@ -516,14 +518,14 @@ Response CGI::_execPython(const std::string& path, Request& req)
 	std::string python_exec = _getExec("python3");
 	char *args[] = {(char*)python_exec.c_str(), (char*)clean_path.c_str(), NULL};
 	
-	std::string query = _getQuery(req);
+	std::vector<char> query = _getQuery(req);
 	std::string request_method = "REQUEST_METHOD=" + req.method;
 	std::string content_type = "CONTENT_TYPE=" + req.attributes["Content-Type"];
-	std::string content_length = "CONTENT_LENGTH=" + Utils::toString(query.length());
+	std::string content_length = "CONTENT_LENGTH=" + Utils::toString(query.size());
 	std::string script_filename = "SCRIPT_FILENAME=" + clean_path;
 	std::string gateway_interface = "GATEWAY_INTERFACE=CGI/1.1";
 	std::string server_protocol = "SERVER_PROTOCOL=HTTP/1.1";
-	std::string query_string = "QUERY_STRING=" + query;
+	std::string query_string = "QUERY_STRING=" + Utils::toString(query);
 
 	char* envp[] = {
 		(char*)request_method.c_str(),
@@ -546,7 +548,7 @@ Response CGI::_execPython(const std::string& path, Request& req)
 	else if (pid == 0)
 	{
 		try {
-			_executeCommand(python_exec, query, args, envp, pipefd);
+			_executeCommand(python_exec, Utils::toString(query), args, envp, pipefd);
 		}
 		catch(const std::runtime_error& e)
 		{
@@ -620,7 +622,7 @@ Response CGI::_execC(const std::string& path, Request& req)
 		clean_path = clean_path.substr(0, pos);
 	}
 	
-	std::string query = _getQuery(req);
+	std::vector<char> query = _getQuery(req);
 	
 	// Compiler le programme C
 	std::string executable = _compileCProgram(clean_path);
@@ -639,13 +641,13 @@ Response CGI::_execC(const std::string& path, Request& req)
 			char* args[] = {(char*)executable.c_str(), NULL};
 			
 			// Préparer les variables d'environnement pour le programme C
-			std::string query_string = "QUERY_STRING=" + query;
+			std::string query_string = "QUERY_STRING=" + Utils::toString(query);
 			char* envp[] = {
 				(char*)query_string.c_str(),
 				NULL
 			};
 			
-			_executeCommand(executable, query, args, envp, pipefd);
+			_executeCommand(executable, Utils::toString(query), args, envp, pipefd);
 		}
 		catch(const std::runtime_error& e)
 		{
