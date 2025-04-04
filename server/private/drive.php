@@ -140,13 +140,8 @@ function deleteItem(filename) {
             },
             body: 'file=' + encodeURIComponent(filename)
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Erreur lors de la suppression du fichier');
-            }
+        .then(() => {
+            window.location.reload();
         });
     }
 }

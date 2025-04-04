@@ -27,7 +27,7 @@ private:
 	std::string _getExec(std::string);
 	Response _execPHP(const std::string&, Location*, Request&);
 	std::vector<char> _getQuery(const Request&);
-	void _executeCommand(const std::string&, const std::string&, char**, char**, int*);
+	void _executeCommand(const std::string&, const std::vector<char>&, char**, char**, int*);
 	void _handlePHPSession(Request&, Response&);
 	Response _execPython(const std::string&, Request&);
 	Response _execC(const std::string&, Request&);

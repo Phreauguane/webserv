@@ -41,7 +41,7 @@ static int *createPipes()
 	return pipefd;
 }
 
-void CGI::_executeCommand(const std::string& cmd, const std::string& query, char **args, char **envp, int *pipefd)
+void CGI::_executeCommand(const std::string& cmd, const std::vector<char>& query, char **args, char **envp, int *pipefd)
 {
 	try {
 		if (!cmd.c_str() || !args || !envp || !pipefd) {
@@ -80,7 +80,7 @@ void CGI::_executeCommand(const std::string& cmd, const std::string& query, char
 		
 		// Écriture des données POST avec vérification
 		if (!query.empty()) {
-			ssize_t written = write(pipe_stdin[1], query.c_str(), query.size());
+			ssize_t written = write(pipe_stdin[1], query.data(), query.size());
 			if (written == -1 || static_cast<size_t>(written) != query.size()) {
 				close(pipe_stdin[1]);
 				throw std::runtime_error("Failed to write query data");
@@ -433,7 +433,8 @@ Response CGI::_execPHP(const std::string& path, Location *loc, Request& req)
 	std::string server_protocol = "SERVER_PROTOCOL=HTTP/1.1";
 	std::string document_root = "DOCUMENT_ROOT=" + clean_path.substr(0, clean_path.find_last_of("/"));
 	std::string script_name = "SCRIPT_NAME=" + clean_path.substr(clean_path.find_last_of("/"));
-	std::string query_string = "QUERY_STRING=" + Utils::toString(query);
+	std::string query_string = "QUERY_STRING=";
+	query_string.append(query.begin(), query.end());
 
 	// Log des informations importantes
 	Logger::log("Content-Length original: " + Utils::toString(req.body.size()), DEBUG);
@@ -475,7 +476,7 @@ Response CGI::_execPHP(const std::string& path, Location *loc, Request& req)
 	{
 		try
 		{
-			_executeCommand(php_cgi, Utils::toString(query), args, envp, pipefd);
+			_executeCommand(php_cgi, query, args, envp, pipefd);
 		}
 		catch(const std::runtime_error& e)
 		{
@@ -525,7 +526,8 @@ Response CGI::_execPython(const std::string& path, Request& req)
 	std::string script_filename = "SCRIPT_FILENAME=" + clean_path;
 	std::string gateway_interface = "GATEWAY_INTERFACE=CGI/1.1";
 	std::string server_protocol = "SERVER_PROTOCOL=HTTP/1.1";
-	std::string query_string = "QUERY_STRING=" + Utils::toString(query);
+	std::string query_string = "QUERY_STRING=";
+	query_string.append(query.begin(), query.end());
 
 	char* envp[] = {
 		(char*)request_method.c_str(),
@@ -548,7 +550,7 @@ Response CGI::_execPython(const std::string& path, Request& req)
 	else if (pid == 0)
 	{
 		try {
-			_executeCommand(python_exec, Utils::toString(query), args, envp, pipefd);
+			_executeCommand(python_exec, query, args, envp, pipefd);
 		}
 		catch(const std::runtime_error& e)
 		{
@@ -641,13 +643,14 @@ Response CGI::_execC(const std::string& path, Request& req)
 			char* args[] = {(char*)executable.c_str(), NULL};
 			
 			// Préparer les variables d'environnement pour le programme C
-			std::string query_string = "QUERY_STRING=" + Utils::toString(query);
+			std::string query_string = "QUERY_STRING=";
+			query_string.append(query.begin(), query.end());
 			char* envp[] = {
 				(char*)query_string.c_str(),
 				NULL
 			};
 			
-			_executeCommand(executable, Utils::toString(query), args, envp, pipefd);
+			_executeCommand(executable, query, args, envp, pipefd);
 		}
 		catch(const std::runtime_error& e)
 		{
