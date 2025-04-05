@@ -6,9 +6,9 @@ class Location
 {
 public:
 	Location();
-	Location(char**);
-	Location(const Location&);
 	Location(const std::string&, char**);
+	Location(const Location&);
+	Location(const std::string&, const std::string&, char**);
 	std::string getName() const;
 	std::string getFullPath() const;
 	void printDetails() const;
@@ -21,6 +21,7 @@ public:
 	~Location();
 public:
 	char **_env;
+	std::string _filename;
 	std::string _name, _root, _alias, _index, _return, _upload;
 	bool _auto_index;
 	std::vector<std::string> _allowed_methods;

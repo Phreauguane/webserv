@@ -24,16 +24,19 @@ class Server
 public:
 	Server();
 	Server(const Server&);
-	Server(const std::string&, char**);
+	Server(const std::string&, const std::string&, char**);
 	Server& operator=(const Server&);
 	in_addr_t getHost() const;
 	void setup();
 	int getSockFd() const;
 	std::string getIp();
+	std::string getName();
+	Server *getServer(const std::string&);
 	Response executeRequest(Request&);
 	size_t getMaxBodySize();
 	void printDetails() const;
 	~Server();
+	void addSubServer(Server*);
 	void pushRequest(Request*);
 	void runRequests();
 	void runRequestsCli(Client*);
@@ -63,7 +66,7 @@ private:
 private:
 	char **_env;
 	CGI *cgiHandler;
-	std::string _name, _ip_addr;
+	std::string _name, _ip_addr, _filename;
 	bool _ready;
 	struct sockaddr_in _servaddr;
 	in_addr_t _host;
@@ -75,4 +78,5 @@ private:
 	unsigned int _max_body_size;
 	std::map<std::string, Session*> _sessions;
 	std::vector<Request*> _reqs;
+	std::vector<Server*> _servers;
 };

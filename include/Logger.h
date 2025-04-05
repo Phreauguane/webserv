@@ -39,6 +39,7 @@ namespace Logger
 	
 	void log(const std::vector<char>&, const log_level);
 	void log(const std::string&, const log_level);
+	void synthaxError(const std::vector<std::string>&, size_t, size_t, const std::string&, const std::string&);
 	void setMinLogLevel(log_level);
 	void setLogFile(const std::string&);
 	void saveLog();

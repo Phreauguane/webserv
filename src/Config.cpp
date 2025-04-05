@@ -1,15 +1,62 @@
 #include "Config.h"
 #include "Utils.h"
 
+const char * Config::InvalidConfig::what() const throw() {
+	return "Invalid configuration";
+}
+
 void Config::_createServers()
 {
 	size_t found = _source.find("server");
 	while (found != std::string::npos)
 	{
 		std::string srv_source = Utils::readBrackets(_source, found);
-		Server *srv = new Server(srv_source, _env);
+		
+		Server *srv = new Server(srv_source, _filename, _env);
 		_servers.push_back(srv);
+
+		size_t i = (found == std::string::npos) ? 0 : (found + srv_source.size());
+
 		found = _source.find("server", found + srv_source.size());
+
+		size_t end = (found == std::string::npos) ? _source.size() : found;
+		size_t line_start = i;
+		while (char c = (i < end) ? _source[i] : '\0') {
+			if (c == '\n')
+				line_start = i;
+			if (!isspace(c)) {
+				size_t line_end = _source.find('\n', line_start + 1);
+				std::vector<std::string> vec;
+				vec.push_back(_source.substr(line_start + 1, line_end - (line_start + 1)));
+				Logger::synthaxError(vec, 0, i - (line_start + 1), _filename, "unexpected token (expected 'server')");
+				throw Config::InvalidConfig();
+			}
+			++i;
+		}
+	}
+
+	for (size_t i = 0; i + 1 < _servers.size();) {
+		for (size_t j = i + 1; j < _servers.size();) {
+			if (_servers[i]->getIp() == _servers[j]->getIp()) {
+				if (_servers[i]->getName() == _servers[j]->getName()) {
+					std::vector<std::string> vec;
+					vec.push_back("hostname"); vec.push_back(_servers[i]->getName());
+					Logger::synthaxError(vec, 1, 0, _filename, "host " + _servers[i]->getName() + " " + _servers[i]->getIp() + " already exists");
+					throw Config::InvalidConfig();
+				}
+
+				Logger::log("found two servers with ip: " + _servers[i]->getIp(), DEBUG);
+
+				// move sub server to it's parent's buffer
+				_servers[i]->addSubServer(_servers[j]);
+				_servers.erase(_servers.begin() + j);
+
+				continue;
+			}
+
+			++j;
+		}
+		++i;
 	}
 }
 
@@ -31,6 +78,7 @@ Config::Config(const Config& copy)
 void Config::load(const std::string& filename)
 {
 	Logger::log("Loading config file : " + filename, INFO);
+	_filename = filename;
 
 	_source = Utils::readFile(filename);
 	_source = Utils::removeComments(_source);
@@ -68,7 +116,7 @@ void Config::run(bool *shouldClose)
         Logger::log("epoll_wait returned: " + Utils::toString(nfds) + " events", INFO);
 		try {
 			_checkForConnections(nfds);
-		} catch (const std::runtime_error &e) {
+		} catch (const std::exception &e) {
 			Logger::log("Connection error: " + std::string(e.what()), ERROR);
 		}
 		try {
@@ -78,6 +126,11 @@ void Config::run(bool *shouldClose)
 		}
 		_checkForTimeouts();
     }
+}
+
+bool Config::hasClone(const std::string &ip) {
+	(void)ip;
+	return true;
 }
 
 void Config::_checkForConnections(size_t nfds)
@@ -92,7 +145,7 @@ void Config::_checkForConnections(size_t nfds)
                         this->_addFd(cli->getFd(), EPOLLIN | EPOLLET);
                         _clients.push_back(cli);
                         Logger::log("Client FD added to epoll: " + Utils::toString(cli->getFd()), INFO);
-                    } catch (const std::runtime_error &e) {
+                    } catch (const std::exception &e) {
                         if (cli == NULL)
                             break;
                         delete cli;
@@ -269,7 +322,6 @@ Config::~Config()
 		delete _clients[i];
 	}
 	_clients.clear();
-	Logger::log("Deleted config object", DEBUG);
 }
 
 Config& Config::operator=(const Config& copy)

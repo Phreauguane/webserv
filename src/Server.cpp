@@ -1,5 +1,8 @@
 #include "Server.h"
 #include "Utils.h"
+#include "Config.h"
+
+class Config;
 
 Server::Server()
 {
@@ -18,14 +21,14 @@ void Server::_parseSource(const std::string& source)
 	
 	for (size_t i = 0; i < lines.size(); ++i) {
 		position = source.find(lines[i], position + 1);
-		std::string line = Utils::removeSemicolon(Utils::removeWSpaces(lines[i]));
-		std::vector<std::string> strs = Utils::splitString(line, " ");
+		std::string lineStr = Utils::removeSemicolon(Utils::removeWSpaces(lines[i]));
+		std::vector<std::string> strs = Utils::splitString(lineStr, " ");
 		
 		if (strs[0] == "server" && i == 0)
 		{}
 		else if (strs[0] == "location")
 		{
-			Utils::verify_args(strs, 2, 3);
+			Utils::verify_args(strs, _filename, 2, 3);
 			std::string src = Utils::readBrackets(source, position);
 			std::vector<std::string> temp = Utils::splitString(src, "\n");
 			if (strs[1] == "/")
@@ -35,38 +38,40 @@ void Server::_parseSource(const std::string& source)
 			i += temp.size() - 1;
 			continue;
 		}
-		else if (strs[0] == "server_name" || strs[0] == "name")
+		else if (strs[0] == "server_name" || strs[0] == "name" || strs[0] == "hostname")
 		{
-			Utils::verify_args(strs, 2, 2);
+			Utils::verify_args(strs, _filename, 2, 2);
 			_name = strs[1];
 		}
 		else if (strs[0] == "host")
 		{
-			Utils::verify_args(strs, 2, 2);
+			Utils::verify_args(strs, _filename, 2, 2);
 			_host = inet_addr(strs[1].c_str());
 			_ip_addr = strs[1];
 		}
 		else if (strs[0] == "listen")
 		{
-			Utils::verify_args(strs, 2, 2);
+			Utils::verify_args(strs, _filename, 2, 2);
 			_port = std::atoi(strs[1].c_str());
-			if (_port > 9999)
-				throw std::runtime_error("Invalid port format : " + strs[1]);
+			if (_port > 9999) {
+				Logger::synthaxError(strs, 1, 0, _filename, "listen port must be within [0 - 9999]");
+				throw Config::InvalidConfig();
+			}
 		}
 		else if (strs[0] == "error_page")
 		{
-			Utils::verify_args(strs, 3, 3);
+			Utils::verify_args(strs, _filename, 3, 3);
 			unsigned int code = std::atoi(strs[1].c_str());
 			_error_pages[code] = strs[2];
 		}
 		else if (strs[0] == "client_max_body_size")
 		{
-			Utils::verify_args(strs, 2, 2);
+			Utils::verify_args(strs, _filename, 2, 2);
 			_max_body_size = std::atoi(strs[1].c_str());
 		}
 		else if (strs[0] == "timeout_ms")
 		{
-			Utils::verify_args(strs, 2, 2);
+			Utils::verify_args(strs, _filename, 2, 2);
 			_timeout = static_cast<size_t>(strtoul(strs[1].c_str(), NULL, 10));
 		}
 		else if (strs[0] == "{" || strs[0] == "}")
@@ -76,12 +81,13 @@ void Server::_parseSource(const std::string& source)
 	}
 }
 
-Server::Server(const std::string& source, char **env): _timeout(DEFAULT_TIMEOUT)
+Server::Server(const std::string& source, const std::string& filename, char **env): _timeout(DEFAULT_TIMEOUT)
 {
 	_env = env;
+	_filename = filename;
 	cgiHandler = new CGI(this);
 	cgiHandler->setup(_env);
-	_root_loc = new Location(_env);
+	_root_loc = new Location(_filename, _env);
 	_parseSource(source);
 }
 
@@ -273,7 +279,13 @@ void Server::setup()
 	if (fcntl(_sockfd, F_SETFL, O_NONBLOCK) < 0)
 		throw std::runtime_error("Failed to set socket in non-blocking mode");
 	_ready = true;
-	Logger::log("Server ready : " + getIp(), SUCCESS);
+	Logger::log("Server ready : " + (_name.empty() ? "" : (_name + " at ")) + getIp(), SUCCESS);
+	if (!_servers.empty())
+		Logger::log("    ╰╴╴╴╴ sub servers : ", SUCCESS);
+	for (size_t i = 0; i < _servers.size(); ++i) {
+		Logger::log("     ╰╴╴" + _servers[i]->getName() + " " + _servers[i]->getIp(), SUCCESS);
+	}
+	
 }
 
 std::string Server::getIp()
@@ -283,6 +295,23 @@ std::string Server::getIp()
 	ss << _ip_addr << ":" << _port;
 
 	return ss.str();	
+}
+
+std::string Server::getName()
+{
+	return _name;	
+}
+
+Server *Server::getServer(const std::string &name) {
+	if (name == _name || name == this->getIp())
+		return this;
+	for (size_t i = 0; i < _servers.size(); i++) {
+		if (name == _servers[i]->getName()) {
+			return _servers[i];
+		}
+	}
+	Logger::log("Unknown hostname: " + name, ERROR);
+	return this;
 }
 
 Location *Server::_getLocation(const std::string& path)
@@ -1340,22 +1369,61 @@ void Server::runRequests()
 
 void Server::runRequestsCli(Client *cli)
 {
-	for (int i = 0; i < MAX_REQUESTS_PER_CYCLE; i++)
-	{
+	for (size_t j = 0; j < _reqs.size();++j) {
+
+		Request *req = _reqs[j];
+		std::string host = req->attributes["Host"];
+		if (host.empty()) continue;
+
+		Server *serv = this->getServer(host);
+		// redirect request
+		if (serv != this) {
+			Logger::log("Redirecting request to " + serv->getName() + "@" + serv->getIp(), DEBUG);
+			_reqs.erase(_reqs.begin() + j);
+			serv->pushRequest(req);
+		}
+	}
+
+	for (int i = 0; i < MAX_REQUESTS_PER_CYCLE; i++) {
 		try {
 			if (_reqs.size() == 0)
-				return;
-			Request *req = _reqs[0];
-			if (req->client != cli)
-				return;
-			_reqs.erase(_reqs.begin());
-
-			Response rep = this->executeRequest(*req);
+			return;
 			
-			req->client->addResponse(rep);
-			delete req; // rends la memoire fdp
+			// executes the first request matching with cli
+			for (size_t j = 0; j < _reqs.size();)
+			{
+				Request *req = _reqs[j];
+				if (req->client == cli) {
+					_reqs.erase(_reqs.begin() + j);
+					
+					Response rep = this->executeRequest(*req);
+					
+					req->client->addResponse(rep);
+					delete req;
+					break;
+				}
+				j++;
+			}
 		} catch (...) {
 			Logger::log("Failed to execute request", INFO);
 		}
 	}
+	
+	for (size_t i = 0; i < _servers.size(); i++) {
+		_servers[i]->runRequestsCli(cli);
+	}
+}
+
+
+void Server::addSubServer(Server *server) {
+	for (size_t i = 0; i < _servers.size(); i++) {
+		if (_servers[i]->getName() == server->getName()) {
+			std::vector<std::string> vec;
+			vec.push_back("hostname"); vec.push_back(server->getName());
+			Logger::synthaxError(vec, 1, 0, _filename, "host " + server->getName() + " " + server->getIp() + " already exists");
+			throw Config::InvalidConfig();
+		}
+	}
+	
+	_servers.push_back(server);
 }

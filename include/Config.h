@@ -9,11 +9,16 @@ public:
 	Config();
 	Config(char**);
 	Config(const Config&);
+	bool hasClone(const std::string&);
 	void load(const std::string&);
 	void setup();
 	void run(bool*);
 	Config& operator=(const Config&);
 	~Config();
+
+	class InvalidConfig: public std::exception {
+		const char *what() const throw();
+	};
 private:
 	void _createServers();
 	void _setupServers();
@@ -30,7 +35,7 @@ private:
 	char **_env;
 	int _epollfd;
 	struct epoll_event _epollevents[MAX_EVENTS];
-	std::string _source;
+	std::string _source, _filename;
 	std::vector<Server*> _servers;
 	std::vector<Client*> _clients;
 };

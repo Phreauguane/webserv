@@ -63,7 +63,7 @@ int	main(int ac, char **av, char **env)
 			config.setup();
 			config.run(&shouldClose);
 		}
-		catch (const std::runtime_error& e)
+		catch (const std::exception& e)
 		{
 			Logger::log(e.what(), ERROR);
 			shouldRestart = false;

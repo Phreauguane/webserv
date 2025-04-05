@@ -113,4 +113,35 @@ namespace Logger
 		if (log_file.is_open())
 			log_file.write((logFileOutput.str()).c_str(), (logFileOutput.str()).size());
 	}
+
+	void synthaxError(const std::vector<std::string>& strs, size_t word, size_t id, const std::string& filename, const std::string& message) {
+		std::stringstream ss;
+		std::string waves = "\t    ";
+
+		std::string lineStr = strs[0];
+		for (size_t i = 1; i < strs.size(); i++) {
+			lineStr += " " + strs[i];
+			if (i <= word)
+				waves += " ";
+		}
+
+		ss << filename << ": error: " << message;
+		Logger::log(ss.str(), ERROR);
+		Logger::log("\t--> " + lineStr, ERROR);
+
+		for (size_t i = 0; i < std::min(word, strs.size()); i++) {
+			for (size_t j = 0; j < strs[i].size(); j++) {
+				waves += " ";
+			}
+		}
+		if (word > strs.size())
+			waves += " ";
+		for (size_t i = 0; i < ((word >= strs.size()) ? 5 : std::max(strs[word].size(), id + 1)); i++) {
+			if (i == id)
+				waves += "^";
+			else
+				waves += "~";
+		}
+		Logger::log(waves, ERROR);
+	}
 }

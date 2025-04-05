@@ -487,7 +487,7 @@ Response CGI::_execPHP(const std::string& path, Location *loc, Request& req)
 	else {
 		try {
 			return handleParentProcessToutCourt(pipefd, pid, this, req);
-		} catch (const std::runtime_error &e) {
+		} catch (const std::exception &e) {
 			std::string str = e.what();
 			if (str == "Timeout") {
 				Logger::log("Timeout", INFO);
@@ -561,7 +561,7 @@ Response CGI::_execPython(const std::string& path, Request& req)
 	else {
 		try {
 			return handleParentProcessToutCourt(pipefd, pid, this, req);
-		} catch (const std::runtime_error &e) {
+		} catch (const std::exception &e) {
 			std::string str = e.what();
 			if (str == "Timeout") {
 				Logger::log("Timeout", INFO);
@@ -666,7 +666,7 @@ Response CGI::_execC(const std::string& path, Request& req)
 			rep = handleParentProcessToutCourt(pipefd, pid, this, req);
 			remove(executable.c_str()); // Supprimer l'exécutable après utilisation
 			return rep;
-		} catch (const std::runtime_error &e) {
+		} catch (const std::exception &e) {
 			std::string str = e.what();
 			if (str == "Timeout") {
 				Logger::log("Timeout", INFO);

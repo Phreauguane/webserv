@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Variables par défaut
-HOST="localhost"
+HOST="127.0.1.1"
 PORT="8080"
 URL_PATH="/"
 REQUESTS=100

@@ -18,8 +18,9 @@ std::string Utils::removeComments(const std::string& source)
 		// ----------------------------------------
 		if (source[i] == '#')
 		{
-			while (source[i++] != '\n' && i < source.size());
-			output += "\n";
+			if (i != 0 && source[i - 1] != '\n')
+				output += "\n";
+			while (source[i] != '\n' && i < source.size()) {i++;}
 		}
 		else
 			output += source[i];
@@ -127,7 +128,7 @@ int Utils::inet_pton_v4(const std::string& ip_str, in_addr_t *addr) {
 	return 0; // Error: invalid format
 }
 
-void Utils::verify_args(const std::vector<std::string>& strs, size_t min, size_t max)
+void Utils::verify_args(const std::vector<std::string>& strs, const std::string &filename, size_t min, size_t max)
 {
 	if (strs.size() >= min && strs.size() <= max)
 		return;
@@ -137,7 +138,9 @@ void Utils::verify_args(const std::vector<std::string>& strs, size_t min, size_t
 		line += " " + strs[i];
 	}
 
-	throw std::runtime_error("Invalid argument list : " + line);
+	size_t word = strs.size() < min ? strs.size() : max;
+	Logger::synthaxError(strs, word, 0, filename, (strs.size() < min) ? ("missing argument for " + strs[0]) : ("too many arguments for " + strs[0]));
+	throw std::runtime_error("Invalid configuration");
 }
 
 std::string Utils::getCurrentTime()
