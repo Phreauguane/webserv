@@ -177,7 +177,6 @@ ReqStatus Client::_readLengthBody() {
         return FINISHED;
     }
     
-    Logger::log("[Content-Length: " + Utils::toString(_info.length) + "]", DEBUG);
     _remaining = (_header + _info.length) - _requestData.size();
     Logger::log("[Remaining: " + Utils::toString(_remaining) + "]", DEBUG);
 
@@ -330,8 +329,16 @@ ReqStatus Client::readRequest() {
                 _header = Utils::findIndex(_requestData, "\r\n\r\n") + 4;
                 _info = _identifyBodyType(std::string(_requestData.begin(), _requestData.end()));
                 Logger::log("header index: " + Utils::toString(_header), DEBUG);
+                if (_info.type == BodyInfo::BODY_CONTENT_LENGTH && _info.length > _server->getMaxBodySize()) {
+                    Logger::log("Content-Length too large: " + Utils::toString( _info.length) + 
+                        " > " + Utils::toString(_server->getMaxBodySize()), ERROR);
+                    _requestData.clear();
+                    _resetState();
+                    Response rep = _server->errorPage(413);
+                    _reps.push_back(rep);
+                    return FINISHED;
+                }
             }
-            
             if (_info.type == BodyInfo::BODY_CONTENT_LENGTH) {
                 return _readLengthBody();
             } else if (_info.type == BodyInfo::BODY_CHUNKED) {
@@ -385,12 +392,17 @@ void Client::runRequests() {
 }
 
 void Client::_pushRequest() {
+    // Si les données de la requête sont vides, on ignore simplement
+    if (_requestData.empty()) {
+        return;
+    }
+
     Request *req = NULL;
     try {
         req = new Request(_requestData, this);
         _server->pushRequest(req);
     } catch (const std::exception &e) {
-        Logger::log("Failed to create request" + std::string(e.what()), ERROR);
+        Logger::log("Failed to create request" + std::string(e.what()), DEBUG);
         if (req)
             delete req;
     }
