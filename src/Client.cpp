@@ -399,6 +399,8 @@ void Client::_pushRequest() {
 
     Request *req = NULL;
     try {
+        Logger::log("Received request", DEBUG);
+        Logger::log(_requestData, TEXT);
         req = new Request(_requestData, this);
         _server->pushRequest(req);
     } catch (const std::exception &e) {

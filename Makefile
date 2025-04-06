@@ -13,7 +13,7 @@ RELEASE_MODE = -D LOG_LEVEL=INFO
 
 MAKEFLAGS += --no-print-directory
 
-SRC		=	main.cpp			\
+SRC			=	main.cpp		\
 			src/Config.cpp		\
 			src/Server.cpp		\
 			src/Location.cpp	\
@@ -24,6 +24,8 @@ SRC		=	main.cpp			\
 			src/Response.cpp	\
 			src/Cgi.cpp			\
 			src/Session.cpp		\
+
+TESTER_SRC	=	tester_src/main.cpp	\
 
 OBJ		=	$(SRC:.cpp=.o)
 DEBUG_OBJ = $(SRC:.cpp=.debug.o)
@@ -134,6 +136,7 @@ pre_compile: clear
 	@$(eval COUNTER=0)
 
 debug: pre_compile_special $(DEBUG_OBJ)
+	@$(CPP) -I $(INCLUDE) $(DEBUG_MODE) -g3 $(TESTER_SRC) -o tester 2>> errors.log
 	@$(CPP) $(DEBUG_MODE) -g3 $(DEBUG_OBJ) -o $(NAME)  2>> errors.log
 	@echo "$(YELLOW)$(BOLD)\n\n 🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮  Done!  🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯\n$(RESET)"
 	@echo "$(RED)"
@@ -201,6 +204,7 @@ fclean: clear
 		rm -f $(NAME); \
 	fi
 	@rm -f *.log
+	@rm -f tester
 	@echo "$(RED)$(BOLD)\n 🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮🬮  Done!  🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯🬯$(RESET)"
 
 re:
