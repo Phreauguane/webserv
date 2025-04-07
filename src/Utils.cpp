@@ -6,16 +6,6 @@ std::string Utils::removeComments(const std::string& source)
 	std::string output("");
 	for (size_t i = 0; i < source.size(); i++)
 	{
-		// ------ Doesn't seem to be usefull ------
-		//
-		// if (source[i] == '\'')
-		// 	while (source[++i] != '\'' && i < source.size())
-		// 		output += source[i];
-		// if (source[i] == '\"')
-		// 	while (source[++i] != '\"' && i < source.size())
-		// 		output += source[i];
-		//
-		// ----------------------------------------
 		if (source[i] == '#')
 		{
 			if (i != 0 && source[i - 1] != '\n')
@@ -31,15 +21,6 @@ std::string Utils::removeComments(const std::string& source)
 
 std::string Utils::readBrackets(const std::string& source, size_t start)
 {
-	/*
-		Function that reads brackets from start to finish (recursively)
-		Takes full source and start index as input
-
-		will output a substring containing everything before the first '{'
-		with the '{' and it's corresponding '}' and everything in between
-
-		readBrackets("hey{{} miaou{ { miaou } { miaou 2 } }", 6); -> returns -> "miaou{ { miaou } { miaou 2 } }"
-	*/
 	size_t bracket = source.find('{', start);
 	if (bracket == std::string::npos)
 		return source.substr(start, source.size() - start);
@@ -112,20 +93,17 @@ std::vector<std::string> Utils::splitString(const std::string& str, const std::s
 }
 
 int Utils::inet_pton_v4(const std::string& ip_str, in_addr_t *addr) {
-	// Split the IP string by '.' and store in an array
 	unsigned int octets[4];
 	std::istringstream iss(ip_str);
 	char dot;
 
-	// Parse the string using dots as delimiters
 	if ((iss >> octets[0] >> dot >> octets[1] >> dot >> octets[2] >> dot >> octets[3]) &&
 		dot == '.' && (octets[0] <= 255 && octets[1] <= 255 && octets[2] <= 255 && octets[3] <= 255)) {
-		// Convert the IP string to a 32-bit integer in network byte order (big-endian)
 		*(addr) = (octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3];
-		return 1; // Success
+		return 1;
 	}
 
-	return 0; // Error: invalid format
+	return 0;
 }
 
 void Utils::verify_args(const std::vector<std::string>& strs, const std::string &filename, size_t min, size_t max)
@@ -145,27 +123,21 @@ void Utils::verify_args(const std::vector<std::string>& strs, const std::string 
 
 std::string Utils::getCurrentTime()
 {
-	// Get current time as a time_t object
 	std::time_t currentTime = std::time(NULL);
 	
-	// Convert it to local time
 	std::tm* localTime = std::localtime(&currentTime);
 	
-	// Create a string stream to format the time
 	std::ostringstream timeStream;
 	
-	// Output the time in "Hours:Minutes:Seconds" format
 	timeStream	<< (localTime->tm_hour < 10 ? "0" : "") << localTime->tm_hour << "|"
 				<< (localTime->tm_min < 10 ? "0" : "") << localTime->tm_min << "|"
 				<< (localTime->tm_sec < 10 ? "0" : "") << localTime->tm_sec;
 	
-	// Return the formatted string
 	return replaceDigits(timeStream.str());
 }
 
 std::string Utils::readFile(const std::string& filename, bool useEpoll)
 {
-    // Si c'est le fichier de configuration, pas besoin d'epoll
     if (!useEpoll) {
         std::string out = "";
         std::ifstream file(filename.c_str());
@@ -183,14 +155,10 @@ std::string Utils::readFile(const std::string& filename, bool useEpoll)
         file.close();
         return out;
     } 
-    // Pour les autres fichiers, utiliser epoll
     else {
         int fd = open(filename.c_str(), O_RDONLY | O_NONBLOCK);
         if (fd < 0)
             throw std::runtime_error("Failed to open file : " + filename);
-            
-        // Ajouter le descripteur à epoll est complexe ici car nous n'avons pas accès à Config
-        // Une solution serait de lire le fichier par petits morceaux et de vérifier EAGAIN
         
         std::string content;
         char buffer[4096];
@@ -321,12 +289,10 @@ std::string Utils::replaceDigits(const std::string& input) {
 }
 
 bool Utils::isSocketValid(int socketFd) {
-    // Vérifier si le descripteur existe
     if (fcntl(socketFd, F_GETFL) < 0) {
         return false;
     }
     
-    // Vérifier l'état du socket
     int error = 0;
     socklen_t len = sizeof(error);
     if (getsockopt(socketFd, SOL_SOCKET, SO_ERROR, &error, &len) < 0 || error != 0) {

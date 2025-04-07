@@ -24,7 +24,6 @@ namespace Logger
 
 	void log(const std::string& message, const log_level level)
 	{
-		// "●◆◈◉"
 		if (level < min_lvl)
 			return ;
 		std::string bold_clr, clr, lvl;

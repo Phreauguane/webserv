@@ -25,7 +25,7 @@ CGI& CGI::operator=(const CGI& copy)
 
 CGI::~CGI()
 {
-	// Je recupere tout
+
 }
 
 void CGI::_restoreStdOut()
@@ -48,28 +48,23 @@ void CGI::_executeCommand(const std::string& cmd, const std::vector<char>& query
 			throw std::runtime_error("Invalid arguments passed to _executeCommand");
 		}
 
-		// Vérifier l'existence et les permissions du fichier
 		if (access(cmd.c_str(), F_OK | X_OK) != 0) {
 			throw std::runtime_error("Command not found or not executable: " + cmd);
 		}
 
-		// Redirection de stdout avec vérification
 		if (dup2(pipefd[1], STDOUT_FILENO) == -1) {
 			throw std::runtime_error("Failed to redirect stdout");
 		}
 
-		// Redirection de stderr avec vérification
 		if (dup2(pipefd[1], STDERR_FILENO) == -1) {
 			throw std::runtime_error("Failed to redirect stderr");
 		}
 
-		// Création et vérification du pipe pour stdin
 		int *pipe_stdin = createPipes();
 		if (!pipe_stdin) {
 			throw std::runtime_error("Failed to create stdin pipe");
 		}
 
-		// Redirection de stdin avec vérification
 		if (dup2(pipe_stdin[0], STDIN_FILENO) == -1) {
 			close(pipe_stdin[0]);
 			close(pipe_stdin[1]);
@@ -78,7 +73,6 @@ void CGI::_executeCommand(const std::string& cmd, const std::vector<char>& query
 
 		close(pipe_stdin[0]);
 		
-		// Écriture des données POST avec vérification
 		if (!query.empty()) {
 			ssize_t written = write(pipe_stdin[1], query.data(), query.size());
 			if (written == -1 || static_cast<size_t>(written) != query.size()) {
@@ -91,7 +85,6 @@ void CGI::_executeCommand(const std::string& cmd, const std::vector<char>& query
 		close(pipefd[0]);
 		close(pipefd[1]);
 
-		// Exécution de la commande
 		if (execve(cmd.c_str(), args, envp) == -1) {
 			_restoreStdOut();
 			throw std::runtime_error("Failed to execute command");
@@ -106,21 +99,18 @@ void CGI::_executeCommand(const std::string& cmd, const std::vector<char>& query
 
 std::string extractAfterPrefix(const std::string& input, const std::string& prefix)
 {
-	size_t pos = input.find(prefix);  // Trouver la position du prefixe
+	size_t pos = input.find(prefix);
 		
 	if (pos == std::string::npos)
 		return "";
 
-	// Deplacer juste apres le prefixe
 	pos += prefix.length();
 
-	// Trouver le premier '\n'
 	size_t endPos = input.find("\n", pos);
 
 	if (endPos == std::string::npos)
-		endPos = input.length();  // Si pas de '\n'
+		endPos = input.length();
 
-	// Extraire la sous chaine
 	std::string result = input.substr(pos, endPos - pos);
 	return result;
 }
@@ -134,7 +124,7 @@ std::string removeHeader(const std::string& input)
 
 	while ((pos = input.find('\n', start)) != std::string::npos)
 	{
-		std::string line = input.substr(start, pos - start);  // Extraire la ligne
+		std::string line = input.substr(start, pos - start);
 		start = pos + 1;
 
 		if (foundContentType)
@@ -160,31 +150,28 @@ Response CGI::_parseOutputPHP(std::string& output, Request& req)
 			throw std::runtime_error("Empty CGI output");
 		}
 
-		// Extraction et validation du Content-Type
 		std::string contentType = Utils::removeWSpaces(extractAfterPrefix(output, "Content-type: "));
 		if (!contentType.empty()) {
 			rep.attributes["Content-Type"] = contentType;
 		} else {
-			rep.attributes["Content-Type"] = "text/html"; // Type par défaut
+			rep.attributes["Content-Type"] = "text/html";
 		}
 
-		// Extraction et validation du Status
 		std::string status = Utils::removeWSpaces(extractAfterPrefix(output, "Status: "));
 		if (!status.empty()) {
 			rep.status = std::atoi(status.c_str());
 			if (rep.status < 100 || rep.status > 599) {
-				rep.status = 500; // Status code invalide
+				rep.status = 500;
 			}
 		} else {
-			rep.status = 200; // Status par défaut
+			rep.status = 200;
 		}
 
-		// Extraction de la Location pour les redirections
 		std::string location = Utils::removeWSpaces(extractAfterPrefix(output, "Location: "));
 		if (!location.empty()) {
 			rep.attributes["Location"] = location;
 			if (rep.status == 200) {
-				rep.status = 302; // Redirection par défaut si status non spécifié
+				rep.status = 302;
 			}
 		}
 
@@ -205,28 +192,11 @@ Response CGI::_parseOutputPHP(std::string& output, Request& req)
 	return rep;
 }
 
-// Response handleParentProcessToutCourt(int* pipefd, pid_t pid, CGI* cgi, Request& req)
-// {
-// 	close(pipefd[1]);
-// 	std::string result = Utils::readFD(pipefd[0], true);
-// 	close(pipefd[0]);
-
-// 	//Logger::log(result, TEXT);
-	
-// 	int status;
-// 	waitpid(pid, &status, 0);
-// 	if (WIFEXITED(status))
-// 			Logger::log("Child process code : " + Utils::toString(WEXITSTATUS(status)), DEBUG);
-// 	return cgi->_parseOutputPHP(result, req);
-// }
-
-#define TIMEOUT_SEC 5  // Timeout in seconds
-
-Response handleParentProcessToutCourt(int* pipefd, pid_t pid, CGI* cgi, Request& req)
+Response CGI::_handleParentProcessToutCourt(int* pipefd, pid_t pid, Request& req)
 {
     close(pipefd[1]);
 
-	const long start = time(NULL);
+	const size_t start = time(NULL) * 1000;
 
     std::string result;
     int status;
@@ -247,8 +217,8 @@ Response handleParentProcessToutCourt(int* pipefd, pid_t pid, CGI* cgi, Request&
             break;
         }
 
-		long now = time(NULL);
-        if ((now - start) > TIMEOUT_SEC) {
+		size_t now = time(NULL) * 1000;
+        if ((now - start) > _server->getCgiTimeout()) {
             kill(pid, SIGINT);
             throw std::runtime_error("Timeout");
         }
@@ -256,7 +226,6 @@ Response handleParentProcessToutCourt(int* pipefd, pid_t pid, CGI* cgi, Request&
         usleep(100000);
     }
 
-    // Read the output from the pipe after the child process finishes
     try {
         result = Utils::readFD(pipefd[0], true);
         close(pipefd[0]);
@@ -265,21 +234,18 @@ Response handleParentProcessToutCourt(int* pipefd, pid_t pid, CGI* cgi, Request&
         throw std::runtime_error("Error reading from pipe: " + std::string(e.what()));
     }
 
-    // Return the parsed output from PHP
-    return cgi->_parseOutputPHP(result, req);
+    return _parseOutputPHP(result, req);
 }
 
 std::vector<char> CGI::_getQuery(const Request& req)
 {
 	if (req.method == "POST") {
-		// Vérifier si Content-Type existe
 		std::map<std::string, std::string>::const_iterator it = req.attributes.find("Content-Type");
 		if (it == req.attributes.end()) {
 			Logger::log("POST request missing Content-Type", ERROR);
 			throw std::runtime_error("Missing Content-Type in POST request");
 		}
 
-		// Traitement spécial pour multipart/form-data
 		if (it->second.find("multipart/form-data") != std::string::npos) {
 			try {
 				std::string contentType = it->second;
@@ -289,12 +255,10 @@ std::vector<char> CGI::_getQuery(const Request& req)
 				}
 				std::string boundary = contentType.substr(boundaryPos + 9);
 				
-				// Vérifier la validité du boundary
 				if (boundary.empty()) {
 					throw std::runtime_error("Empty boundary in multipart/form-data");
 				}
 
-				// Extraire le nom du fichier avec vérification
 				std::string filename = "unknown";
 				std::vector<char> request = req.request;
 				ssize_t filenamePos = Utils::findIndex(request, std::string("filename=\""));
@@ -307,19 +271,17 @@ std::vector<char> CGI::_getQuery(const Request& req)
 					filename = std::string(request.begin() + filenamePos, request.begin() + filenameEnd);
 				}
 
-				// Vérifier la taille du body
 				if (req.body.empty()) {
 					throw std::runtime_error("Empty body in POST request");
 				}
 				
-				// Construction du corps de la requête avec vérification de la mémoire
 				std::string header = "--" + boundary + "\r\n";
 				header += "Content-Disposition: form-data; name=\"fichier\"; filename=\"" + filename + "\"\r\n";
 				header += "Content-Type: " + contentType + "\r\n\r\n";
 				std::string footer = "\r\n--" + boundary + "--\r\n";
 				
 				size_t totalSize = header.size() + req.body.size() + footer.size();
-				if (totalSize > MAX_POST_SIZE) {  // Définir MAX_POST_SIZE dans les constantes
+				if (totalSize > MAX_POST_SIZE) {
 					throw std::runtime_error("POST request too large");
 				}
 				
@@ -337,7 +299,7 @@ std::vector<char> CGI::_getQuery(const Request& req)
 			}
 			catch (const std::exception& e) {
 				Logger::log("Error in _getQuery: " + std::string(e.what()), ERROR);
-				throw; // Propager l'erreur pour une gestion appropriée
+				throw;
 			}
 		}
 		return req.body;
@@ -386,17 +348,13 @@ Response CGI::_execPHP(const std::string& path, Location *loc, Request& req)
 {
 	std::string php_cgi = _getExec("php-cgi");
 	char *args[] = {(char*)php_cgi.c_str(), (char*)path.c_str(), NULL};
-	Logger::log("path : " + std::string(args[0]), DEBUG);
 
-	// Nettoyer le chemin en retirant les paramètres GET
 	std::string clean_path = path;
 	size_t queryPos = clean_path.find("?");
 	if (queryPos != std::string::npos) {
 		clean_path = clean_path.substr(0, queryPos);
 	}
-	Logger::log("clean path : " + clean_path, DEBUG);
 
-	// Récupérer la session depuis le serveur
 	std::string session_id = "";
 	Session* session = NULL;
 	
@@ -409,22 +367,15 @@ Response CGI::_execPHP(const std::string& path, Location *loc, Request& req)
 			pos += 10;
 			size_t end = cookies.find(";", pos);
 			session_id = cookies.substr(pos, end - pos);
-			// Récupérer la session depuis le serveur
 			if (_server && _server->hasSession(session_id))
 				session = _server->getSession(session_id);
 		}
 	}
 
-	// Préparer la query et calculer sa taille
 	std::vector<char> query = _getQuery(req);
-	Logger::log("query : ", DEBUG);
-	Logger::log(query, DEBUG);
-	Logger::log("path : " + path, DEBUG);
 	
-	// Variables d'environnement pour l'upload
 	std::string request_method = "REQUEST_METHOD=" + req.method;
 	std::string content_type = "CONTENT_TYPE=" + req.attributes["Content-Type"];
-	// Utiliser la taille de la query au lieu de req.body.size()
 	std::string content_length = "CONTENT_LENGTH=" + Utils::toString(query.size());
 	std::string script_filename = "SCRIPT_FILENAME=" + clean_path;
 	std::string session_env = "HTTP_COOKIE=PHPSESSID=" + session_id;
@@ -436,12 +387,6 @@ Response CGI::_execPHP(const std::string& path, Location *loc, Request& req)
 	std::string query_string = "QUERY_STRING=";
 	query_string.append(query.begin(), query.end());
 
-	// Log des informations importantes
-	Logger::log("Content-Length original: " + Utils::toString(req.body.size()), DEBUG);
-	Logger::log("Content-Length final: " + Utils::toString(query.size()), DEBUG);
-	Logger::log("Upload tmp dir: " + upload_tmp_dir, DEBUG);
-
-	// Préparer les variables de session pour PHP
 	std::string session_data = "";
 	if (session && session->hasKey("user_id"))
 		session_data = "PHP_SESSION_VARS={\"user_id\":\"" + session->getValue("user_id") + "\"}";
@@ -463,12 +408,10 @@ Response CGI::_execPHP(const std::string& path, Location *loc, Request& req)
 		NULL
 	};
 
-	// Créer les pipes
 	int* pipefd = createPipes();
 	if (pipefd == NULL)
 		throw std::runtime_error("Unable to create pipe");
 
-	// Créer un nouveau processus avec fork
 	pid_t pid = fork();
 	if (pid < 0)
 		throw std::runtime_error("Unable to fork");
@@ -486,7 +429,7 @@ Response CGI::_execPHP(const std::string& path, Location *loc, Request& req)
 	}
 	else {
 		try {
-			return handleParentProcessToutCourt(pipefd, pid, this, req);
+			return _handleParentProcessToutCourt(pipefd, pid, req);
 		} catch (const std::exception &e) {
 			std::string str = e.what();
 			if (str == "Timeout") {
@@ -503,13 +446,11 @@ Response CGI::_execPHP(const std::string& path, Location *loc, Request& req)
 
 Response CGI::_execPython(const std::string& path, Request& req)
 {
-	// Vérifier la version de Python et logger l'avertissement
 	std::string python_version = _getPythonVersion();
 	if (python_version >= "3.13") {
 		Logger::log("Warning: Python CGI module is deprecated in Python 3.13+. Consider updating your Python scripts.", WARNING);
 	}
 
-	// Nettoyer le chemin du script en retirant les paramètres GET
 	std::string clean_path = path;
 	size_t pos = clean_path.find("?");
 	if (pos != std::string::npos) {
@@ -560,7 +501,7 @@ Response CGI::_execPython(const std::string& path, Request& req)
 	}
 	else {
 		try {
-			return handleParentProcessToutCourt(pipefd, pid, this, req);
+			return _handleParentProcessToutCourt(pipefd, pid, req);
 		} catch (const std::exception &e) {
 			std::string str = e.what();
 			if (str == "Timeout") {
@@ -594,7 +535,6 @@ std::string CGI::_getPythonVersion()
 	
 	pclose(pipe);
 	
-	// Extraire la version (format: "Python X.Y.Z")
 	size_t pos = result.find(" ");
 	if (pos != std::string::npos) {
 		return result.substr(pos + 1);
@@ -617,7 +557,6 @@ std::string CGI::_compileCProgram(const std::string& path)
 
 Response CGI::_execC(const std::string& path, Request& req)
 {
-	// Nettoyer le chemin du fichier en retirant les paramètres GET
 	std::string clean_path = path;
 	size_t pos = clean_path.find("?");
 	if (pos != std::string::npos) {
@@ -626,7 +565,6 @@ Response CGI::_execC(const std::string& path, Request& req)
 	
 	std::vector<char> query = _getQuery(req);
 	
-	// Compiler le programme C
 	std::string executable = _compileCProgram(clean_path);
 	
 	int* pipefd = createPipes();
@@ -642,7 +580,6 @@ Response CGI::_execC(const std::string& path, Request& req)
 		{
 			char* args[] = {(char*)executable.c_str(), NULL};
 			
-			// Préparer les variables d'environnement pour le programme C
 			std::string query_string = "QUERY_STRING=";
 			query_string.append(query.begin(), query.end());
 			char* envp[] = {
@@ -663,8 +600,8 @@ Response CGI::_execC(const std::string& path, Request& req)
 		Response rep;
 
 		try {
-			rep = handleParentProcessToutCourt(pipefd, pid, this, req);
-			remove(executable.c_str()); // Supprimer l'exécutable après utilisation
+			rep = _handleParentProcessToutCourt(pipefd, pid, req);
+			remove(executable.c_str());
 			return rep;
 		} catch (const std::exception &e) {
 			std::string str = e.what();
@@ -692,7 +629,7 @@ bool CGI::executeCGI(Request &req, const std::string &path, Location *loc, Respo
 	std::string ext = "";
 	size_t dot_pos = clean_path.find_last_of(".");
 	if (dot_pos != std::string::npos) {
-		ext = clean_path.substr(dot_pos);  // Inclut le point
+		ext = clean_path.substr(dot_pos);
 	}
 	
 	if (ext.empty())
@@ -747,7 +684,6 @@ void CGI::_handlePHPSession(Request& req, Response& rep)
 		}
 	}
 
-	// Ajouter le cookie de session à la réponse si nécessaire
 	if (session_id.empty())
 	{
 		session_id = Utils::generateRandomString(32);

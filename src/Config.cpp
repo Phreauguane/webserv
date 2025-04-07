@@ -97,7 +97,7 @@ void Config::run(bool *shouldClose)
 
     while (1)
     {
-        int nfds = epoll_wait(_epollfd, _epollevents, MAX_EVENTS, 30000);
+        int nfds = epoll_wait(_epollfd, _epollevents, MAX_EVENTS, 500);
 
         if (*shouldClose)
             break;
@@ -169,11 +169,13 @@ void Config::_handleRequests(size_t nfds)
         for (size_t j = 0; j < _clients.size();) {
             if (fd == _clients[j]->getFd()) {
                 if (events & EPOLLIN) {
+					Logger::log("Received request", INFO);
 					ReqStatus stat = _clients[j]->readRequest();
 					if (stat == FINISHED) {
+						Logger::log("Running request", INFO);
 						_clients[j]->runRequests();
-						Logger::log("Request executed", SUCCESS);
 						_modFd(_clients[j]->getFd(), EPOLLIN | EPOLLOUT);
+						Logger::log("Request executed", SUCCESS);
 					} else if (stat == INCOMPLETE) {
 						if (!_clients[j]->validate()) {
 							_modFd(_clients[j]->getFd(), EPOLLIN | EPOLLOUT);

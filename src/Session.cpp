@@ -1,7 +1,6 @@
 #include "Session.h"
 
 Session::Session() : _lastAccess(time(NULL)) {
-    // Générer un ID de session unique
     std::stringstream ss;
     ss << std::hex << time(NULL) << rand();
     _id = ss.str();

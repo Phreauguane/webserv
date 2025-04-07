@@ -708,6 +708,7 @@ int main(int argc, char* argv[]) {
     std::cout << BOLD_RED "│       " GREEN "▷           Commands           ◁" BOLD_RED "        │" << DEF << std::endl;
     std::cout << BOLD_RED "│       " GREEN "▏ " YELLOW "exit: " WHITE "quits" GREEN "                  ▕" BOLD_RED "        │" << DEF << std::endl;
     std::cout << BOLD_RED "│       " GREEN "▏ " YELLOW "send: " WHITE "sends request to server" GREEN "▕" BOLD_RED "        │" << DEF << std::endl;
+    std::cout << BOLD_RED "│       " GREEN "▏ " YELLOW "re: " WHITE "resends request to server" GREEN "▕" BOLD_RED "        │" << DEF << std::endl;
     std::cout << BOLD_RED "│       " GREEN "▏ " YELLOW "▲/▼: " WHITE "navigate command history" GREEN "▕" BOLD_RED "        │" << DEF << std::endl;
     std::cout << BOLD_RED "│       " GREEN "▷      Type your request       ◁" BOLD_RED "        │" << DEF << std::endl;
     std::cout << BOLD_RED "│                                               │" << DEF << std::endl;
@@ -716,19 +717,27 @@ int main(int argc, char* argv[]) {
     
     std::vector<std::string> commandHistory;
     std::string request = "";
+    std::string lastRequest = "";
     
     while (true) {
         std::string message = getUserInput(commandHistory);
         
-        // Add non-empty commands to history
         if (!message.empty() && (commandHistory.empty() || message != commandHistory.back())) {
             commandHistory.push_back(message);
         }
         
         if (message == "exit") {
             break;
-        } else if (message == "send") {
+        }
+        
+        if (message == "re") {
+            request = lastRequest;
+            message = "send";
+        }
+        
+        if (message == "send") {
             std::cout << BOLD_GREEN "sending request..." DEF << std::endl;
+            lastRequest = request;
             if (send(sockfd, request.c_str(), request.length(), 0) < 0) {
                 std::cerr << BOLD_RED "Failed to send data: " RED << strerror(errno) << DEF << std::endl;
                 break;
@@ -742,37 +751,11 @@ int main(int argc, char* argv[]) {
             std::cout << colorizedResponse << std::endl;
             std::cout << DEF; // Reset terminal colors
             
-            {
-                close(sockfd);
-                sockfd = socket(AF_INET, SOCK_STREAM, 0);
-                {
-                    if (sockfd < 0) {
-                        std::cerr << BOLD_RED "Error creating socket: " << strerror(errno) << DEF << std::endl;
-                        return 1;
-                    }
-
-                    struct sockaddr_in server_addr;
-                    std::memset(&server_addr, 0, sizeof(server_addr));
-                    server_addr.sin_family = AF_INET;
-                    server_addr.sin_port = htons(port);
-                    
-                    if (inet_pton(AF_INET, server_ip, &server_addr.sin_addr) <= 0) {
-                        std::cerr << BOLD_RED "Invalid address: " DEF << strerror(errno) << std::endl;
-                        close(sockfd);
-                        return 1;
-                    }
-                    
-                    if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-                        std::cerr << BOLD_RED "Connection failed: " DEF << strerror(errno) << std::endl;
-                        close(sockfd);
-                        return 1;
-                    }
-                }
-                std::cout << BOLD_GREEN "Reconnected to " << server_ip << ":" << port << DEF << std::endl;
-            }
-
+            message = "reconnect";
             request = "";
-        } else if (message == "reconnect") {
+        }
+        
+        if (message == "reconnect") {
             close(sockfd);
             sockfd = socket(AF_INET, SOCK_STREAM, 0);
             {

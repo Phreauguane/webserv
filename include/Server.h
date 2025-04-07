@@ -41,6 +41,7 @@ public:
 	void runRequests();
 	void runRequestsCli(Client*);
 	size_t getTimeout() const;
+	size_t getCgiTimeout() const;
 	bool hasSession(const std::string&);
 	Session* getSession(const std::string&);
 	static bool sendResponse(Response&, int);
@@ -72,7 +73,7 @@ private:
 	in_addr_t _host;
 	int _port, _sockfd;
 	Location *_root_loc;
-	size_t _timeout;
+	size_t _client_timeout, _server_timeout;
 	std::map<unsigned int, std::string> _error_pages;
 	std::map<std::string, std::string> _types;
 	unsigned int _max_body_size;

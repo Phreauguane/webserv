@@ -154,7 +154,7 @@ void Location::parseConfig(const std::string& configString) {
 		std::string lineStr = Utils::removeSemicolon(Utils::removeWSpaces(lines[i]));
 		std::vector<std::string> strs = Utils::splitString(lineStr, " ");
 		
-		if (strs[0] == "location" && i == 0) // main location -> store name
+		if (strs[0] == "location" && i == 0)
 		{
 			size_t start = strs[1].find("/");
 			if (start == std::string::npos)
@@ -162,7 +162,7 @@ void Location::parseConfig(const std::string& configString) {
 			else
 				_name = strs[1].substr(start + 1, strs[1].size() - (start + 1));
 		}
-		else if (strs[0] == "location") // recursive location -> call Location(const string&)
+		else if (strs[0] == "location")
 		{
 			std::string source = Utils::readBrackets(configString, position);
 			std::vector<std::string> temp = Utils::splitString(source, "\n");

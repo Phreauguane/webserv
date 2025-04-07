@@ -4,7 +4,7 @@
 
 class Config;
 
-Server::Server()
+Server::Server(): _ready(false)
 {
 	//
 }
@@ -69,10 +69,15 @@ void Server::_parseSource(const std::string& source)
 			Utils::verify_args(strs, _filename, 2, 2);
 			_max_body_size = std::atoi(strs[1].c_str());
 		}
-		else if (strs[0] == "timeout_ms")
+		else if (strs[0] == "client_timeout")
 		{
 			Utils::verify_args(strs, _filename, 2, 2);
-			_timeout = static_cast<size_t>(strtoul(strs[1].c_str(), NULL, 10));
+			_client_timeout = static_cast<size_t>(strtoul(strs[1].c_str(), NULL, 10));
+		}
+		else if (strs[0] == "server_timeout")
+		{
+			Utils::verify_args(strs, _filename, 2, 2);
+			_server_timeout = static_cast<size_t>(strtoul(strs[1].c_str(), NULL, 10));
 		}
 		else if (strs[0] == "{" || strs[0] == "}")
 		{}
@@ -81,7 +86,7 @@ void Server::_parseSource(const std::string& source)
 	}
 }
 
-Server::Server(const std::string& source, const std::string& filename, char **env): _timeout(DEFAULT_TIMEOUT)
+Server::Server(const std::string& source, const std::string& filename, char **env): _ready(false), _client_timeout(DEFAULT_TIMEOUT), _server_timeout(DEFAULT_TIMEOUT)
 {
 	_env = env;
 	_filename = filename;
@@ -92,7 +97,7 @@ Server::Server(const std::string& source, const std::string& filename, char **en
 }
 
 size_t Server::getTimeout() const {
-	return _timeout;
+	return _client_timeout;
 }
 
 void Server::pushRequest(Request *req)
@@ -215,7 +220,6 @@ void Server::_loadTypes()
 
 void Server::printDetails() const
 {
-	// "╔═╗╚═╝║";
 	std::cout << "╔═══════════════════════════════════════╗" << std::endl;
 	std::cout << "║    Server name : ";WIDTH(20);std::cout << _name          ;std::cout << " ║" << std::endl;
 	std::cout << "║             IP : ";WIDTH(20);std::cout << _ip_addr       ;std::cout << " ║" << std::endl;
@@ -300,6 +304,10 @@ std::string Server::getIp()
 std::string Server::getName()
 {
 	return _name;	
+}
+
+size_t Server::getCgiTimeout() const {
+	return _server_timeout;
 }
 
 Server *Server::getServer(const std::string &name) {
@@ -446,7 +454,7 @@ Response Server::_get(const Request& req)
 		if (!loc->_return.empty()) {
 			std::vector<std::string> return_parts = Utils::splitString(loc->_return, " ");
 			if (return_parts.size() >= 3 && return_parts[0] == "return") {
-				rep.status = std::atoi(return_parts[1].c_str()); // redirect
+				rep.status = std::atoi(return_parts[1].c_str());
 				rep.attributes["Location"] = return_parts[2];
 				rep.phrase = "Moved Permanently";
 				rep.ready = true;
@@ -690,7 +698,6 @@ Response Server::errorPage(unsigned int code)
     std::string errorDescription;
     std::string errorColor;
     
-    // Set error details based on status code
     switch(code)
     {
         // 1xx Informational
@@ -1081,7 +1088,6 @@ Response Server::errorPage(unsigned int code)
             break;
     }
 
-    Logger::log(_error_pages[code], INFO);
     req_type type = _getType(_root_loc->_root + _error_pages[code]);
     if (type == T_FILE)
         rep.body = Utils::readFile(_root_loc->_root + _error_pages[code], true);
@@ -1241,6 +1247,10 @@ Server::~Server()
 		delete it->second;
 	}
 	_sessions.clear();
+
+	for (size_t i = 0; i < _servers.size(); i++) {
+		delete _servers[i];
+	}
 	
 	if (_ready)
 		close(_sockfd);
@@ -1260,7 +1270,7 @@ void Server::_handleSession(Request& req, Response& rep)
 		size_t pos = cookies.find("PHPSESSID=");
 		if (pos != std::string::npos)
 		{
-			pos += 10; // Longueur de "PHPSESSID="
+			pos += 10;
 			size_t end = cookies.find(";", pos);
 			sessionId = cookies.substr(pos, end - pos);
 			hasCookie = true;
@@ -1357,27 +1367,12 @@ void Server::runRequests()
 
 void Server::runRequestsCli(Client *cli)
 {
-	// Logger::log(_name + " Running requests for client", DEBUG);
-	// for (size_t j = 0; j < _reqs.size();++j) {
-
-	// 	Request *req = _reqs[j];
-
-	// 	// redirect request
-	// 	if (serv != this) {
-	// 		Logger::log("Redirecting request to " + serv->getName() + "@" + serv->getIp(), DEBUG);
-	// 		_reqs.erase(_reqs.begin() + j);
-	// 		cli->setServer(serv);
-	// 		serv->pushRequest(req);
-	// 		serv->runRequestsCli(cli);
-	// 	}
-	// }
 
 	for (int i = 0; i < MAX_REQUESTS_PER_CYCLE; i++) {
 		try {
 			if (_reqs.size() == 0)
 			return;
 			
-			// executes the first request matching with cli
 			for (size_t j = 0; j < _reqs.size();)
 			{
 				Request *req = _reqs[j];
@@ -1400,10 +1395,6 @@ void Server::runRequestsCli(Client *cli)
 			Logger::log("Failed to execute request", INFO);
 		}
 	}
-
-	// for (size_t i = 0; i < _servers.size(); i++) {
-	// 	_servers[i]->runRequestsCli(cli);
-	// }
 }
 
 

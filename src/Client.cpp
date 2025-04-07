@@ -313,7 +313,7 @@ ReqStatus Client::readRequest() {
             ssize_t bytes = recv(_fd, &buffer, 1, MSG_DONTWAIT);
             if (bytes > 0) {
                 _requestData.push_back(buffer);
-                _lastAction = time(NULL); // reset timeout
+                _lastAction = time(NULL);
             }
 
             if (bytes < 0) {
@@ -392,6 +392,13 @@ bool Client::sendResponse()
 }
 
 bool Client::validate() {
+    if (_requestData.empty()) {
+        Logger::log("Invalid request", ERROR);
+        Response rep = _server->errorPage(400);
+        this->addResponse(rep);
+        return false;
+    }
+    
     bool isValid = Request::validateFirstLine(_requestData) == VALID;
 
     if (!isValid) {
@@ -420,6 +427,10 @@ void Client::_pushRequest() {
     Request *req = NULL;
     try {
         req = new Request(_requestData, this);
+        if (_info.type == BodyInfo::BODY_CHUNKED) {
+            req->attributes["Content-Length"] = Utils::toString(req->body.size());
+            req->attributes["Transfer-Encoding"] = "";    
+        }
         _server->pushRequest(req);
     } catch (const std::exception &e) {
         if (req)

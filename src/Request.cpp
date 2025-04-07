@@ -26,7 +26,7 @@ Request::Request(const std::vector<char>& req, Client *client)
 void Request::parseRequest()
 {
 	Logger::log("Received request:", DEBUG);
-	Logger::log(request, DEBUG);
+	Logger::log(request, TEXT);
 	size_t headerEnd = Utils::findIndex(request, "\r\n\r\n");
 	if (headerEnd == std::string::npos)
 	{
@@ -182,7 +182,7 @@ Request::~Request()
 }
 
 ValidationError Request::validateFirstLine(const std::vector<char> &req) {
-	std::string reqStr = req.data();
+	std::string reqStr(req.begin(), req.end());
     std::vector<std::string> lines = Utils::splitString(reqStr, "\n");
 	
     std::vector<std::string> firstLine = Utils::splitString(lines[0], " ");

@@ -33,6 +33,7 @@ private:
 	Response _execC(const std::string&, Request&);
 	std::string _compileCProgram(const std::string&);
 	std::string _getPythonVersion();
+	Response _handleParentProcessToutCourt(int*, pid_t, Request&);
 
 private:
 	char **_env;
