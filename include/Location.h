@@ -14,7 +14,6 @@ public:
 	void printDetails() const;
 	void parseLine(const std::vector<std::string>&);
 	void parseConfig(const std::string&);
-	void addMethod(const std::string&);
 	void addChildren(const std::string&);
 	Location *getSubLoc(const std::string&);
 	Location& operator=(const Location&);

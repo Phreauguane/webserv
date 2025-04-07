@@ -1,4 +1,6 @@
 #include "webserv.h"
+#include <termios.h>
+#include <vector>
 
 // Forward declarations
 std::string parseHttpResponse(const std::string& response);
@@ -6,6 +8,7 @@ std::string parseStatusLine(const std::string& statusLine);
 std::string parseHeaders(const std::string& headers);
 std::string parseBody(const std::string& body, const std::string& contentType);
 bool startsWith(const std::string& str, const std::string& prefix);
+std::string getUserInput(std::vector<std::string>& history);
 
 // Parses and returns HTML with syntax highlighting
 std::string parseHtml(const std::string& html) {
@@ -368,6 +371,147 @@ std::string readResponse(int sockfd, size_t timeout) {
     return response;
 }
 
+// Read a key from the terminal (handles special keys like arrows)
+int readKey() {
+    int c = getchar();
+    
+    if (c == 27) {  // ESC character
+        // Check if it's an escape sequence
+        int next = getchar();
+        if (next == '[') {  // Arrow keys start with ESC[
+            switch (getchar()) {
+                case 'A': return 1000; // Up arrow
+                case 'B': return 1001; // Down arrow
+                case 'C': return 1002; // Right arrow
+                case 'D': return 1003; // Left arrow
+                default: return c;
+            }
+        } else {
+            ungetc(next, stdin);
+            return c;
+        }
+    }
+    
+    return c;
+}
+
+// Get user input with history navigation support
+std::string getUserInput(std::vector<std::string>& history) {
+    struct termios oldSettings, newSettings;
+    tcgetattr(STDIN_FILENO, &oldSettings);
+    newSettings = oldSettings;
+    
+    // Disable canonical mode and echo
+    newSettings.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newSettings);
+    
+    std::string input;
+    size_t historyPos = history.size();
+    size_t cursorPos = 0;
+    
+    std::cout << PURPLE "> " CYAN;
+    std::cout.flush();
+    
+    while (true) {
+        int c = readKey();
+        
+        if (c == '\n') {
+            std::cout << std::endl;
+            break;
+        } else if (c == 127 || c == 8) {  // Backspace
+            if (cursorPos > 0) {
+                input.erase(--cursorPos, 1);
+                
+                // Redraw the line
+                std::cout << "\r" << PURPLE "> " CYAN;
+                std::cout << input;
+                
+                // Clear any characters that might remain from the previous input
+                for (size_t i = input.length(); i < input.length() + 1; i++) {
+                    std::cout << " ";
+                }
+                
+                // Reset cursor position
+                std::cout << "\r" << PURPLE "> " CYAN;
+                for (size_t i = 0; i < cursorPos; i++) {
+                    std::cout << input[i];
+                }
+            }
+        } else if (c == 1000) {  // Up arrow
+            if (!history.empty() && historyPos > 0) {
+                historyPos--;
+                input = history[historyPos];
+                cursorPos = input.length();
+                
+                // Redraw the line
+                std::cout << "\r" << PURPLE "> " CYAN;
+                std::cout << input;
+                
+                // Clear any characters that might remain from the previous input
+                for (size_t i = input.length(); i < input.length() + 10; i++) {
+                    std::cout << " ";
+                }
+                
+                // Reset cursor position
+                std::cout << "\r" << PURPLE "> " CYAN << input;
+            }
+        } else if (c == 1001) {  // Down arrow
+            if (historyPos < history.size() - 1) {
+                historyPos++;
+                input = history[historyPos];
+            } else if (historyPos == history.size() - 1) {
+                historyPos++;
+                input = "";
+            }
+            
+            cursorPos = input.length();
+            
+            // Redraw the line
+            std::cout << "\r" << PURPLE "> " CYAN;
+            std::cout << input;
+            
+            // Clear any characters that might remain from the previous input
+            for (size_t i = input.length(); i < input.length() + 10; i++) {
+                std::cout << " ";
+            }
+            
+            // Reset cursor position
+            std::cout << "\r" << PURPLE "> " CYAN << input;
+        } else if (c == 1002) {  // Right arrow
+            if (cursorPos < input.length()) {
+                cursorPos++;
+                std::cout << input[cursorPos - 1];
+            }
+        } else if (c == 1003) {  // Left arrow
+            if (cursorPos > 0) {
+                cursorPos--;
+                std::cout << "\b";
+            }
+        } else if (c >= 32 && c < 127) {  // Printable character
+            input.insert(cursorPos, 1, static_cast<char>(c));
+            cursorPos++;
+            
+            // Redraw the line from cursor position
+            for (size_t i = cursorPos - 1; i < input.length(); i++) {
+                std::cout << input[i];
+            }
+            
+            // Reset cursor position
+            std::cout << "\r" << PURPLE "> " CYAN;
+            for (size_t i = 0; i < cursorPos; i++) {
+                std::cout << input[i];
+            }
+        }
+        
+        std::cout.flush();
+    }
+    
+    // Restore terminal settings
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldSettings);
+    
+    return input;
+}
+
 // Utility function to check if a string starts with a specific prefix
 bool startsWith(const std::string& str, const std::string& prefix) {
     return str.substr(0, prefix.length()) == prefix;
@@ -564,30 +708,31 @@ int main(int argc, char* argv[]) {
     std::cout << BOLD_RED "│       " GREEN "▷           Commands           ◁" BOLD_RED "        │" << DEF << std::endl;
     std::cout << BOLD_RED "│       " GREEN "▏ " YELLOW "exit: " WHITE "quits" GREEN "                  ▕" BOLD_RED "        │" << DEF << std::endl;
     std::cout << BOLD_RED "│       " GREEN "▏ " YELLOW "send: " WHITE "sends request to server" GREEN "▕" BOLD_RED "        │" << DEF << std::endl;
+    std::cout << BOLD_RED "│       " GREEN "▏ " YELLOW "▲/▼: " WHITE "navigate command history" GREEN "▕" BOLD_RED "        │" << DEF << std::endl;
     std::cout << BOLD_RED "│       " GREEN "▷      Type your request       ◁" BOLD_RED "        │" << DEF << std::endl;
     std::cout << BOLD_RED "│                                               │" << DEF << std::endl;
     std::cout << BOLD_RED "╰───────────────────────────────────────────────╯" << DEF << std::endl;
     std::cout << "" << DEF << std::endl;
     
-    char buffer[1024];
+    std::vector<std::string> commandHistory;
     std::string request = "";
     
     while (true) {
-        std::cout << PURPLE "> " CYAN;
-        std::string message;
-        std::getline(std::cin, message);
+        std::string message = getUserInput(commandHistory);
+        
+        // Add non-empty commands to history
+        if (!message.empty() && (commandHistory.empty() || message != commandHistory.back())) {
+            commandHistory.push_back(message);
+        }
         
         if (message == "exit") {
             break;
         } else if (message == "send") {
-            // request += "\r\n";
             std::cout << BOLD_GREEN "sending request..." DEF << std::endl;
             if (send(sockfd, request.c_str(), request.length(), 0) < 0) {
                 std::cerr << BOLD_RED "Failed to send data: " RED << strerror(errno) << DEF << std::endl;
                 break;
             }
-            
-            std::memset(buffer, 0, sizeof(buffer));
             
             std::string response = readResponse(sockfd, timeout);
             std::cout << CYAN "Received: \n" DEF;
@@ -597,6 +742,35 @@ int main(int argc, char* argv[]) {
             std::cout << colorizedResponse << std::endl;
             std::cout << DEF; // Reset terminal colors
             
+            {
+                close(sockfd);
+                sockfd = socket(AF_INET, SOCK_STREAM, 0);
+                {
+                    if (sockfd < 0) {
+                        std::cerr << BOLD_RED "Error creating socket: " << strerror(errno) << DEF << std::endl;
+                        return 1;
+                    }
+
+                    struct sockaddr_in server_addr;
+                    std::memset(&server_addr, 0, sizeof(server_addr));
+                    server_addr.sin_family = AF_INET;
+                    server_addr.sin_port = htons(port);
+                    
+                    if (inet_pton(AF_INET, server_ip, &server_addr.sin_addr) <= 0) {
+                        std::cerr << BOLD_RED "Invalid address: " DEF << strerror(errno) << std::endl;
+                        close(sockfd);
+                        return 1;
+                    }
+                    
+                    if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+                        std::cerr << BOLD_RED "Connection failed: " DEF << strerror(errno) << std::endl;
+                        close(sockfd);
+                        return 1;
+                    }
+                }
+                std::cout << BOLD_GREEN "Reconnected to " << server_ip << ":" << port << DEF << std::endl;
+            }
+
             request = "";
         } else if (message == "reconnect") {
             close(sockfd);
@@ -624,10 +798,10 @@ int main(int argc, char* argv[]) {
                     return 1;
                 }
             }
+            std::cout << BOLD_GREEN "Reconnected to " << server_ip << ":" << port << DEF << std::endl;
         } else {
             request += message + "\r\n";
         }
-        
     }
     
     close(sockfd);

@@ -45,9 +45,6 @@ void Config::_createServers()
 					throw Config::InvalidConfig();
 				}
 
-				Logger::log("found two servers with ip: " + _servers[i]->getIp(), DEBUG);
-
-				// move sub server to it's parent's buffer
 				_servers[i]->addSubServer(_servers[j]);
 				_servers.erase(_servers.begin() + j);
 
@@ -90,9 +87,7 @@ void Config::load(const std::string& filename)
 
 void Config::setup()
 {
-	_setupServers();
-
-	Logger::log("All servers ready", DEBUG);
+	_setupServers();	
 }
 
 void Config::run(bool *shouldClose)
@@ -102,7 +97,6 @@ void Config::run(bool *shouldClose)
 
     while (1)
     {
-        Logger::log("Calling epoll_wait...", INFO);
         int nfds = epoll_wait(_epollfd, _epollevents, MAX_EVENTS, 30000);
 
         if (*shouldClose)
@@ -113,7 +107,6 @@ void Config::run(bool *shouldClose)
 			continue;
 		}
 
-        Logger::log("epoll_wait returned: " + Utils::toString(nfds) + " events", INFO);
 		try {
 			_checkForConnections(nfds);
 		} catch (const std::exception &e) {
@@ -144,7 +137,6 @@ void Config::_checkForConnections(size_t nfds)
                         cli = new Client(_servers[j]);
                         this->_addFd(cli->getFd(), EPOLLIN | EPOLLET);
                         _clients.push_back(cli);
-                        Logger::log("Client FD added to epoll: " + Utils::toString(cli->getFd()), INFO);
                     } catch (const std::exception &e) {
                         if (cli == NULL)
                             break;
@@ -174,27 +166,22 @@ void Config::_handleRequests(size_t nfds)
         int fd = _epollevents[i].data.fd;
         uint32_t events = _epollevents[i].events;
 
-        std::ostringstream oss;
-        oss << "Event received on FD: " << fd << " - ";
-        if (events & EPOLLIN) oss << "EPOLLIN ";
-        if (events & EPOLLOUT) oss << "EPOLLOUT ";
-        if (events & EPOLLERR) oss << "EPOLLERR ";
-        if (events & EPOLLHUP) oss << "EPOLLHUP ";
-        Logger::log(oss.str(), INFO);
-
         for (size_t j = 0; j < _clients.size();) {
             if (fd == _clients[j]->getFd()) {
                 if (events & EPOLLIN) {
 					ReqStatus stat = _clients[j]->readRequest();
 					if (stat == FINISHED) {
-						// _clients[j]->resetState();
 						_clients[j]->runRequests();
-
-						Logger::log("Request executed modifying FD for EPOLLIN | EPOLLOUT", SUCCESS);
+						Logger::log("Request executed", SUCCESS);
 						_modFd(_clients[j]->getFd(), EPOLLIN | EPOLLOUT);
 					} else if (stat == INCOMPLETE) {
-						Logger::log("Request incomplete modifying FD for EPOLLIN", DEBUG);
-						_modFd(_clients[j]->getFd(), EPOLLIN);
+						if (!_clients[j]->validate()) {
+							_modFd(_clients[j]->getFd(), EPOLLIN | EPOLLOUT);
+						} else {
+							_modFd(_clients[j]->getFd(), EPOLLIN);
+						}
+					} else if (stat == REQUEST_ERROR) {
+						_modFd(_clients[j]->getFd(), EPOLLIN | EPOLLOUT);
 					} else if (stat == DISCONNECT) {
 						_disconnectClient(j);
 						continue;
@@ -203,10 +190,9 @@ void Config::_handleRequests(size_t nfds)
 
 				if (events & EPOLLOUT) {
 					if (_clients[j]->sendResponse() && _clients[j]->isIncomplete()) {
-						Logger::log("Sent response modifying FD for EPOLLIN", DEBUG);
 						_modFd(_clients[j]->getFd(), EPOLLIN);
 					} else {
-						Logger::log("Sent response disconnecting...", DEBUG);
+						Logger::log("Disconnecting...", DEBUG);
 						_disconnectClient(j);
 						continue;
 					}
@@ -281,7 +267,6 @@ void Config::_delFd(int fd)
 	
 	struct stat statbuf;
 	if (fstat(fd, &statbuf) < 0) {
-		Logger::log("File descriptor " + Utils::toString(fd) + " already closed", INFO);
 		return;
 	}
 

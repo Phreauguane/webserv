@@ -88,11 +88,12 @@ void Location::parseLine(const std::vector<std::string>& strs)
 		_allowed_methods.clear();
 		for (size_t i = 1; i < strs.size(); i++)
 		{
+			if (strs[i] == "NONE") {
+				_allowed_methods.clear();
+				_allowed_methods.push_back("NONE");
+				break;
+			}
 			_allowed_methods.push_back(strs[i]);
-		}
-		Logger::log("Location " + _name + " allowed methods: ", DEBUG);
-		for (size_t i = 0; i < _allowed_methods.size(); i++) {
-			Logger::log(" - " + _allowed_methods[i], DEBUG);
 		}
 	}
 	else if (strs[0] == "enable_cgi")
@@ -174,11 +175,6 @@ void Location::parseConfig(const std::string& configString) {
 	}
 }
 
-void Location::addMethod(const std::string& method)
-{
-	_allowed_methods.push_back(method);
-}
-
 void Location::addChildren(const std::string& source)
 {
 	try {
@@ -188,7 +184,8 @@ void Location::addChildren(const std::string& source)
 		}
 		loc->_parent = this;
 		loc->_root = _root;
-		loc->_allowed_methods = _allowed_methods;
+		if (loc->_allowed_methods.size() == 0)
+			loc->_allowed_methods = _allowed_methods;
 		_locations[loc->_name] = loc;
 	} catch (const std::exception& e) {
 		throw;

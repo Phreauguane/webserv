@@ -15,19 +15,28 @@ Request::Request(const std::vector<char>& req, Client *client)
 {
 	this->request = req;
 	this->client = client;
-	Logger::log("Received request", DEBUG);
-	Logger::log(this->request, TEXT);
-	parseRequest();
+	try	{
+		parseRequest();
+	}
+	catch(const std::exception& e) {
+		throw;
+	}
 }
 
 void Request::parseRequest()
 {
+	Logger::log("Received request:", DEBUG);
+	Logger::log(request, DEBUG);
 	size_t headerEnd = Utils::findIndex(request, "\r\n\r\n");
 	if (headerEnd == std::string::npos)
 	{
 		Logger::log("Invalid request format: no header-body separator found", ERROR);
 		return;
 	}
+
+	if (validateRequest() != VALID) {
+        throw std::runtime_error("Invalid request");
+    }
 
 	std::string headers = std::string(request.begin(), request.begin() + headerEnd);
 	
@@ -170,4 +179,126 @@ Request::~Request()
 {
 	attributes.clear();
 	accept.clear();
+}
+
+ValidationError Request::validateFirstLine(const std::vector<char> &req) {
+	std::string reqStr = req.data();
+    std::vector<std::string> lines = Utils::splitString(reqStr, "\n");
+	
+    std::vector<std::string> firstLine = Utils::splitString(lines[0], " ");
+    if (firstLine.size() != 3) {
+        Logger::log("Invalid first line format", ERROR);
+        return INVALID_BODY_FORMAT;
+    }
+
+    std::string method = firstLine[0];
+    if (method != "GET" && method != "POST" && method != "DELETE") {
+        Logger::log("Invalid HTTP method: " + method, ERROR);
+        return INVALID_METHOD;
+    }
+
+    std::string http_version = firstLine[2];
+    if (http_version != "HTTP/1.1" && http_version != "HTTP/1.0") {
+        Logger::log("Invalid HTTP version: " + http_version, ERROR);
+        return INVALID_VERSION;
+    }
+
+    std::string path = firstLine[1];
+    if (path.empty() || path[0] != '/') {
+        Logger::log("Invalid URL: " + path, ERROR);
+        return INVALID_URL;
+    }
+
+	return VALID;
+}
+
+ValidationError Request::validateRequest() {
+    size_t headerEnd = Utils::findIndex(request, "\r\n\r\n");
+    if (headerEnd == std::string::npos) {
+        Logger::log("Invalid request format: no header-body separator found", ERROR);
+        return INVALID_BODY_FORMAT;
+    }
+
+    std::string headers = std::string(request.begin(), request.begin() + headerEnd);
+    std::vector<std::string> lines = Utils::splitString(headers, "\n");
+    
+    if (lines.empty()) {
+        Logger::log("Empty request", ERROR);
+        return INVALID_BODY_FORMAT;
+    }
+
+    std::vector<std::string> firstLine = Utils::splitString(lines[0], " ");
+    if (firstLine.size() != 3) {
+        Logger::log("Invalid first line format", ERROR);
+        return INVALID_BODY_FORMAT;
+    }
+
+    std::string method = firstLine[0];
+    if (method != "GET" && method != "POST" && method != "DELETE") {
+        Logger::log("Invalid HTTP method: " + method, ERROR);
+        return INVALID_METHOD;
+    }
+
+    std::string http_version = firstLine[2];
+    if (http_version != "HTTP/1.1" && http_version != "HTTP/1.0") {
+        Logger::log("Invalid HTTP version: " + http_version, ERROR);
+        return INVALID_VERSION;
+    }
+
+    std::string path = firstLine[1];
+    if (path.empty() || path[0] != '/') {
+        Logger::log("Invalid URL: " + path, ERROR);
+        return INVALID_URL;
+    }
+
+    bool hostFound = false;
+    for (size_t i = 1; i < lines.size(); i++) {
+        std::vector<std::string> header = Utils::splitString(lines[i], ": ");
+        if (header.size() >= 2 && Utils::toLowerCase(header[0]) == "host") {
+            hostFound = true;
+            break;
+        }
+    }
+    if (!hostFound) {
+        Logger::log("Missing Host header", ERROR);
+        return MISSING_HOST;
+    }
+
+    if (method == "POST") {
+        bool hasContentType = false;
+        bool hasContentLength = false;
+        bool validContentLength = true;
+
+        for (size_t i = 1; i < lines.size(); i++) {
+            std::vector<std::string> header = Utils::splitString(lines[i], ": ");
+            if (header.size() >= 2) {
+                std::string key = Utils::toLowerCase(header[0]);
+                std::string value = header[1];
+
+                if (key == "content-type") {
+                    hasContentType = true;
+                } else if (key == "content-length") {
+                    hasContentLength = true;
+                    for (size_t j = 0; j < value.size(); j++) {
+                        if (!isdigit(value[j])) {
+                            validContentLength = false;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!hasContentType) {
+            Logger::log("Missing Content-Type for POST request", ERROR);
+            return INVALID_CONTENT_TYPE;
+        }
+
+        if (hasContentLength && !validContentLength) {
+            Logger::log("Invalid Content-Length format", ERROR);
+            return INVALID_CONTENT_LENGTH;
+        }
+    }
+
+    return VALID;
 }

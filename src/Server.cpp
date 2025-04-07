@@ -310,7 +310,6 @@ Server *Server::getServer(const std::string &name) {
 			return _servers[i];
 		}
 	}
-	Logger::log("Unknown hostname: " + name, ERROR);
 	return this;
 }
 
@@ -361,10 +360,6 @@ Response Server::executeRequest(Request& req)
 		if (queryPos != std::string::npos) {
 			path = path.substr(0, queryPos);
 		}
-		Logger::log("path : " + path, DEBUG);
-		
-		int access_result = access(path.c_str(), R_OK);
-		Logger::log("access result: " + Utils::toString(access_result) + " (errno: " + Utils::toString(errno) + ")", DEBUG);
 		
 		if (access(path.c_str(), R_OK) != 0) {
 			return errorPage(403);
@@ -387,13 +382,6 @@ Response Server::executeRequest(Request& req)
 				return errorPage(500);
 			}
 		}
-	}
-
-	Logger::log("Request method: " + req.method, DEBUG);
-	Logger::log("Location: " + loc->getName(), DEBUG);
-	Logger::log("Allowed methods: ", DEBUG);
-	for (size_t i = 0; i < loc->_allowed_methods.size(); i++) {
-		Logger::log(" - " + loc->_allowed_methods[i], DEBUG);
 	}
 
 	Logger::log("Not CGI, running methods...", DEBUG);
@@ -1369,20 +1357,20 @@ void Server::runRequests()
 
 void Server::runRequestsCli(Client *cli)
 {
-	for (size_t j = 0; j < _reqs.size();++j) {
+	// Logger::log(_name + " Running requests for client", DEBUG);
+	// for (size_t j = 0; j < _reqs.size();++j) {
 
-		Request *req = _reqs[j];
-		std::string host = req->attributes["Host"];
-		if (host.empty()) continue;
+	// 	Request *req = _reqs[j];
 
-		Server *serv = this->getServer(host);
-		// redirect request
-		if (serv != this) {
-			Logger::log("Redirecting request to " + serv->getName() + "@" + serv->getIp(), DEBUG);
-			_reqs.erase(_reqs.begin() + j);
-			serv->pushRequest(req);
-		}
-	}
+	// 	// redirect request
+	// 	if (serv != this) {
+	// 		Logger::log("Redirecting request to " + serv->getName() + "@" + serv->getIp(), DEBUG);
+	// 		_reqs.erase(_reqs.begin() + j);
+	// 		cli->setServer(serv);
+	// 		serv->pushRequest(req);
+	// 		serv->runRequestsCli(cli);
+	// 	}
+	// }
 
 	for (int i = 0; i < MAX_REQUESTS_PER_CYCLE; i++) {
 		try {
@@ -1394,9 +1382,13 @@ void Server::runRequestsCli(Client *cli)
 			{
 				Request *req = _reqs[j];
 				if (req->client == cli) {
+					std::string host = req->attributes["Host"];
+					Server *serv = this->getServer(host);
+
+					Logger::log(serv->_name + " running request...", DEBUG);
 					_reqs.erase(_reqs.begin() + j);
 					
-					Response rep = this->executeRequest(*req);
+					Response rep = serv->executeRequest(*req);
 					
 					req->client->addResponse(rep);
 					delete req;
@@ -1408,10 +1400,10 @@ void Server::runRequestsCli(Client *cli)
 			Logger::log("Failed to execute request", INFO);
 		}
 	}
-	
-	for (size_t i = 0; i < _servers.size(); i++) {
-		_servers[i]->runRequestsCli(cli);
-	}
+
+	// for (size_t i = 0; i < _servers.size(); i++) {
+	// 	_servers[i]->runRequestsCli(cli);
+	// }
 }
 
 

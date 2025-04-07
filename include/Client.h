@@ -11,6 +11,7 @@ enum ReqStatus {
 	NONE,
 	DISCONNECT,
 	INCOMPLETE,
+	REQUEST_ERROR,
 	FINISHED
 };
 
@@ -49,10 +50,12 @@ public:
 	bool isIncomplete() const;
 	void sendContinue();
 	bool sendResponse();
+	bool validate();
 	bool checkTimeout(size_t) const;
 	void addResponse(Response&);
 	void runRequests();
 	void resetState();
+	void setServer(Server*);
 	~Client();
 private:
 	ReqStatus _readLengthBody();

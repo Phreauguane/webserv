@@ -159,7 +159,6 @@ void Client::_saveReadState(size_t pos, size_t remaining, ReqStatus status) {
 
 ReqStatus Client::_handleReadErr() {
     if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
-        Logger::log("Read signal: " + std::string(errno == EAGAIN ? "EAGAIN" : errno == EWOULDBLOCK ? "EWOULDBLOCK" : "EINTR"), DEBUG);
         _saveReadState(_readPos, _remaining, INCOMPLETE);
         return INCOMPLETE;
     } else {
@@ -171,14 +170,19 @@ ReqStatus Client::_handleReadErr() {
 
 ReqStatus Client::_readLengthBody() {
     if (_info.length == 0) {
-        Logger::log("length = 0 -> FINISHED", DEBUG);
-        _pushRequest();
+        try {
+            _pushRequest();
+        } catch (...) {
+            Logger::log("Invalid request", ERROR);
+            Response rep = _server->errorPage(400);
+            this->addResponse(rep);
+            return REQUEST_ERROR;
+        }
         _resetState();
         return FINISHED;
     }
     
     _remaining = (_header + _info.length) - _requestData.size();
-    Logger::log("[Remaining: " + Utils::toString(_remaining) + "]", DEBUG);
 
     std::vector<char> buffer(_remaining + 1);
     ssize_t bytes_ = recv(_fd, buffer.data(), _remaining, MSG_DONTWAIT);
@@ -190,14 +194,17 @@ ReqStatus Client::_readLengthBody() {
         _saveReadState(_readPos + bytes_, _remaining - bytes_, INCOMPLETE);
         return INCOMPLETE;
     } else {
-        Logger::log("Remaining before: " + Utils::toString(_remaining), DEBUG);
-        Logger::log("bytes: " + Utils::toString(bytes_), DEBUG);
         _requestData.insert(_requestData.end(), buffer.begin(), buffer.begin() + bytes_);
         _remaining = (_header + _info.length) - _requestData.size();
-        Logger::log("Remaining: " + Utils::toString(_remaining), DEBUG);
         if (_remaining == 0) {
-            Logger::log("Read whole body -> FINISHED", DEBUG);
-            _pushRequest();
+            try {
+                _pushRequest();
+            } catch (...) {
+                Logger::log("Invalid request", ERROR);
+                Response rep = _server->errorPage(400);
+                this->addResponse(rep);
+                return REQUEST_ERROR;
+            }
             _resetState();
             return FINISHED;
         }
@@ -219,7 +226,6 @@ ReqStatus Client::_readChunkedBody() {
             if (bytes < 0) {
                 return _handleReadErr();
             } else if (bytes == 0) {
-                Logger::log("Reached EOF", DEBUG);
                 _saveReadState(_readPos, _remaining, INCOMPLETE);
                 return INCOMPLETE;
             } else {
@@ -238,7 +244,6 @@ ReqStatus Client::_readChunkedBody() {
         }
 
         if (_chunkState == CHUNK_DATA) {
-            Logger::log("[Chunk-Size: " + Utils::toString(_info.length) + "]", DEBUG);
             _remaining = _info.length - _chunk.size();
 
             std::vector<char> buff(_remaining + 1);
@@ -248,13 +253,11 @@ ReqStatus Client::_readChunkedBody() {
                 return _handleReadErr();
             } else if (bytes < static_cast<ssize_t>(_remaining)) {
                 _chunk.insert(_chunk.end(), buff.begin(), buff.begin() + bytes);
-                Logger::log("Reached EOF", DEBUG);
                 _saveReadState(_readPos, _remaining, INCOMPLETE);
                 return INCOMPLETE;
             } else {
                 _chunk.insert(_chunk.end(), buff.begin(), buff.begin() + bytes);
                 _requestData.insert(_requestData.end(), _chunk.begin(), _chunk.end());
-                Logger::log("Read chunk", DEBUG);
                 _chunk = std::vector<char>();
                 _chunkState = CHUNK_END;
             }
@@ -267,7 +270,6 @@ ReqStatus Client::_readChunkedBody() {
             if (bytes < 0) {
                 return _handleReadErr();
             } else if (bytes == 0) {
-                Logger::log("Reached EOF", DEBUG);
                 _saveReadState(_readPos, _remaining, INCOMPLETE);
                 return INCOMPLETE;
             } else {
@@ -280,8 +282,14 @@ ReqStatus Client::_readChunkedBody() {
         }
 
         if (_chunkState == CHUNK_COMPLETE) {
-            Logger::log("CHUNK COMPLETE -> FINISHED", DEBUG);
-            _pushRequest();
+            try {
+                _pushRequest();
+            } catch (...) {
+                Logger::log("Invalid request", ERROR);
+                Response rep = _server->errorPage(400);
+                this->addResponse(rep);
+                return REQUEST_ERROR;
+            }
             _resetState();
             return FINISHED;
         }
@@ -299,8 +307,6 @@ ReqStatus Client::readRequest() {
         return DISCONNECT;
     }
 
-    Logger::log("Received request. headerComplete: " + std::string(_headerComplete ? "true" : "false"), DEBUG);
-
     while (true) {
         if (!_headerComplete && !_isHeaderComplete()) {
             char buffer = '\0';
@@ -313,22 +319,16 @@ ReqStatus Client::readRequest() {
             if (bytes < 0) {
                 return _handleReadErr();
             } else if (bytes == 0) {
-                Logger::log("Reached EOF", DEBUG);
                 _saveReadState(_readPos, _remaining, INCOMPLETE);
                 return INCOMPLETE;
             }
         }
 
         if (_headerComplete || _isHeaderComplete()) {
-            Logger::log("headerComplete: " + std::string(_headerComplete ? "true" : "false"), DEBUG);
-            Logger::log("Request size: " + Utils::toString(_requestData.size()), DEBUG);
             if (!_headerComplete) {
-                Logger::log("Header read", DEBUG);
-                Logger::log(std::string(_requestData.begin(), _requestData.end()), TEXT);
                 _headerComplete = true;
                 _header = Utils::findIndex(_requestData, "\r\n\r\n") + 4;
                 _info = _identifyBodyType(std::string(_requestData.begin(), _requestData.end()));
-                Logger::log("header index: " + Utils::toString(_header), DEBUG);
                 if (_info.type == BodyInfo::BODY_CONTENT_LENGTH && _info.length > _server->getMaxBodySize()) {
                     Logger::log("Content-Length too large: " + Utils::toString( _info.length) + 
                         " > " + Utils::toString(_server->getMaxBodySize()), ERROR);
@@ -343,9 +343,15 @@ ReqStatus Client::readRequest() {
                 return _readLengthBody();
             } else if (_info.type == BodyInfo::BODY_CHUNKED) {
                 return _readChunkedBody();
-            } else { // BODY_NONE or BODY_UNKNOWN -> handled later
-                Logger::log("BODY NONE/UNKOWN -> FINISHED", DEBUG);
-                _pushRequest();
+            } else {
+                try {
+                    _pushRequest();
+                } catch (...) {
+                    Logger::log("Invalid request", ERROR);
+                    Response rep = _server->errorPage(400);
+                    this->addResponse(rep);
+                    return REQUEST_ERROR;
+                }
                 _resetState();
                 return FINISHED;
             }
@@ -359,6 +365,10 @@ ReqStatus Client::readRequest() {
     return DISCONNECT;
 }
 
+void Client::setServer(Server *server) {
+    _server = server;
+}
+
 bool Client::sendResponse()
 {
 	if (_reps.size() == 0)
@@ -368,12 +378,10 @@ bool Client::sendResponse()
 	}
 	Response rep = _reps[0];
 	std::string content = rep.build();
-	Logger::log("Sending response", DEBUG);
 	ssize_t len = content.size();
 	ssize_t sent = send(_fd, content.c_str(), len, MSG_NOSIGNAL);
 	if (sent == len)
 		_reps.erase(_reps.begin());
-	Logger::log("sent response", DEBUG);
 
 	if (rep.attributes.find("Connection") != rep.attributes.end() && 
 		rep.attributes["Connection"] == "close") {
@@ -381,6 +389,21 @@ bool Client::sendResponse()
 	}
 
 	return sent == len;
+}
+
+bool Client::validate() {
+    bool isValid = Request::validateFirstLine(_requestData) == VALID;
+    Logger::log(_requestData, TEXT);
+
+    if (!isValid) {
+        Logger::log("Invalid request", ERROR);
+        Response rep = _server->errorPage(400);
+        this->addResponse(rep);
+        return false;
+    }
+
+    Logger::log("valid", SUCCESS);
+    return true;
 }
 
 void Client::addResponse(Response &rep) {
@@ -392,20 +415,17 @@ void Client::runRequests() {
 }
 
 void Client::_pushRequest() {
-    // Si les données de la requête sont vides, on ignore simplement
     if (_requestData.empty()) {
         return;
     }
 
     Request *req = NULL;
     try {
-        Logger::log("Received request", DEBUG);
-        Logger::log(_requestData, TEXT);
         req = new Request(_requestData, this);
         _server->pushRequest(req);
     } catch (const std::exception &e) {
-        Logger::log("Failed to create request" + std::string(e.what()), DEBUG);
         if (req)
             delete req;
+        throw;
     }
 }

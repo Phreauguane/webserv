@@ -5,12 +5,22 @@
 
 class Client;
 
-enum methods
-{
+enum methods {
 	GET,
 	POST,
 	DELETE,
 	UNKNOWN
+};
+
+enum ValidationError {
+    VALID,
+    INVALID_METHOD,
+    INVALID_VERSION,
+    INVALID_URL,
+    MISSING_HOST,
+    INVALID_CONTENT_LENGTH,
+    INVALID_CONTENT_TYPE,
+    INVALID_BODY_FORMAT
 };
 
 class Request
@@ -19,6 +29,8 @@ public:
 	Request();
 	Request(const Request&);
 	Request(const std::vector<char>&, Client*);
+	ValidationError validateRequest();
+	static ValidationError validateFirstLine(const std::vector<char>&);
 	void parseRequest();
 	void parseMultipartFormData();
 	void logData();
