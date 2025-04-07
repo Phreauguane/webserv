@@ -393,7 +393,6 @@ bool Client::sendResponse()
 
 bool Client::validate() {
     bool isValid = Request::validateFirstLine(_requestData) == VALID;
-    Logger::log(_requestData, TEXT);
 
     if (!isValid) {
         Logger::log("Invalid request", ERROR);
@@ -402,7 +401,6 @@ bool Client::validate() {
         return false;
     }
 
-    Logger::log("valid", SUCCESS);
     return true;
 }
 
